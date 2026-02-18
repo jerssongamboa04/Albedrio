@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../store/auth.store";
 import { signIn, signUp, signOut } from "../services/auth.service";
 import { useState } from "react";
+import { HomeScreen } from "../screens/HomeScreen";
 
 export function Root() {
   const { session, user, initialized, setSession, setInitialized } = useAuthStore();
@@ -44,18 +45,8 @@ export function Root() {
   if (session && user) {
     return (
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24 }}>
-          <Text style={{ fontSize: 22, fontWeight: "700" }}>Bienvenido a Albendrio</Text>
-          <Text style={{ marginTop: 8, opacity: 0.7 }}>{user.email}</Text>
-          <View style={{ marginTop: 16 }}>
-            <Button
-              title="Cerrar sesión"
-              onPress={async () => {
-                await signOut();
-              }}
-            />
-          </View>
-        </SafeAreaView>
+        <HomeScreen />
+
       </SafeAreaProvider>
     );
   }
