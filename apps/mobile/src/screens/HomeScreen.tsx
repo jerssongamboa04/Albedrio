@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/auth.store";
 import { signOut } from "../services/auth.service";
 import { createTask, deleteTask, fetchTasks, toggleTaskDone, type Task } from "../services/tasks.service";
+import { copy } from "../lib/copy";
 
 export function HomeScreen() {
     const user = useAuthStore((s) => s.user);
@@ -29,12 +30,12 @@ export function HomeScreen() {
 
     return (
         <SafeAreaView style={{ flex: 1, padding: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: "700" }}>Tus tareas</Text>
+            <Text style={{ fontSize: 20, fontWeight: "700" }}>{copy.home.title}</Text>
             <Text style={{ marginTop: 4, opacity: 0.7 }}>{user.email}</Text>
 
             <View style={{ marginTop: 16, flexDirection: "row", gap: 8 }}>
                 <TextInput
-                    placeholder="Nueva tarea..."
+                    placeholder={copy.home.newTaskPlaceholder}
                     value={title}
                     onChangeText={setTitle}
                     style={{ flex: 1, borderWidth: 1, borderRadius: 10, padding: 10 }}
@@ -62,7 +63,7 @@ export function HomeScreen() {
                 style={{ marginTop: 16 }}
                 data={tasks}
                 keyExtractor={(item) => item.id}
-                ListEmptyComponent={<Text style={{ marginTop: 20, opacity: 0.7 }}>No tienes tareas aún.</Text>}
+                ListEmptyComponent={<Text style={{ marginTop: 20, opacity: 0.7 }}>{copy.home.empty}</Text>}
                 renderItem={({ item }) => (
                     <View
                         style={{
