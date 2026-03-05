@@ -5,6 +5,8 @@ import { useAuthStore } from "../store/auth.store";
 import { AuthScreen } from "../screens/AuthScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { View, Text } from "react-native";
+import { getRedirectTo } from "../services/oauth.service";
+
 
 export function Root() {
   const { session, user, initialized, setSession, setInitialized } = useAuthStore();
