@@ -6,6 +6,9 @@ type AuthState = {
   user: User | null;
   initialized: boolean;
 
+  recovery: boolean;
+  setRecovery: (value: boolean) => void;
+
   setSession: (session: Session | null) => void;
   setInitialized: (value: boolean) => void;
   signOutLocal: () => void;
@@ -16,6 +19,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   initialized: false,
 
+  recovery: false,
+  setRecovery: (value) => set({ recovery: value }),
+
   setSession: (session) =>
     set({
       session,
@@ -24,5 +30,5 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setInitialized: (value) => set({ initialized: value }),
 
-  signOutLocal: () => set({ session: null, user: null }),
+  signOutLocal: () => set({ session: null, user: null, recovery: false }),
 }));

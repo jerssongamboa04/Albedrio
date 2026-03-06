@@ -3,16 +3,19 @@ import { View, Text, TextInput, Pressable, StyleSheet, Image } from "react-nativ
 import { Screen } from "../components/Screen";
 import { BrandHeader } from "../components/BrandHeader";
 import { theme } from "../lib/theme";
-import { signIn, signUp } from "../services/auth.service";
+import { signIn } from "../services/auth.service";
 import { copy } from "../lib/copy";
 import { signInWithGoogle } from "../services/oauth.service";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { AuthStackParamList } from "../navigation/types";
 
-export function AuthScreen() {
+type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
+
+export function AuthScreen({ navigation }: Props) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [msg, setMsg] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-
 
     return (
         <Screen>
@@ -42,7 +45,9 @@ export function AuthScreen() {
             />
 
             <View style={{ alignItems: "flex-end", marginTop: 6 }}>
-                <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
+                <Pressable onPress={() => navigation.navigate("ForgotPassword")} disabled={loading}>
+                    <Text style={[styles.link, { opacity: loading ? 0.6 : 1 }]}>¿Olvidaste tu contraseña?</Text>
+                </Pressable>
             </View>
 
             {msg ? <Text style={styles.msg}>{msg}</Text> : null}
@@ -93,7 +98,9 @@ export function AuthScreen() {
             >
                 <View style={styles.googleBtnContent}>
                     <Image source={require("../../assets/brand/google.png")} style={styles.googleIcon} />
-                    <Text style={styles.googleBtnText}>{loading ? "Conectando…" : "Continuar con Google"}</Text>
+                    <Text style={styles.googleBtnText}>
+                        {loading ? "Conectando…" : "Continuar con Google"}
+                    </Text>
                 </View>
             </Pressable>
 
@@ -101,28 +108,19 @@ export function AuthScreen() {
                 <Text style={{ color: theme.colors.muted }}>¿No tienes cuenta?</Text>
                 <Pressable
                     disabled={loading}
-                    onPress={async () => {
+                    onPress={() => {
                         if (loading) return;
-                        setLoading(true);
                         setMsg(null);
-
-                        const { error } = await signUp(email.trim(), password);
-
-                        if (error) setMsg(`❌ ${error.message}`);
-                        else setMsg(copy.auth.createdOk);
-
-                        setLoading(false);
+                        navigation.navigate("Register");
                     }}
                 >
                     <Text style={[styles.link, { marginLeft: 6, opacity: loading ? 0.6 : 1 }]}>
                         {copy.auth.signUp}
                     </Text>
                 </Pressable>
-
             </View>
 
             <View style={{ height: 12 }} />
-
         </Screen>
     );
 }
@@ -200,5 +198,4 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: theme.colors.text,
     },
-
 });
