@@ -15,7 +15,7 @@ export function RootNavigator() {
     );
   }
 
-  // ✅ PRIORIDAD ABSOLUTA: si estamos en recovery, mostramos AuthStack (ResetPassword)
+  // ✅ Si estamos en recovery, SIEMPRE mostramos ResetPassword (aunque haya sesión)
   if (recovery) return <AuthStack />;
 
   return session && user ? <AppStack /> : <AuthStack />;
