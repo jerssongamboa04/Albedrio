@@ -1,121 +1,275 @@
-import { useEffect, useState } from "react";
-import { View, Text, Button, TextInput, FlatList, Pressable } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { View, Text, FlatList, Pressable, StyleSheet, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/auth.store";
 import { signOut } from "../services/auth.service";
-import { createTask, deleteTask, fetchTasks, toggleTaskDone, type Task } from "../services/tasks.service";
-import { copy } from "../lib/copy";
+import {
+    createTask,
+    deleteTask,
+    fetchTasks,
+    toggleTaskDone,
+    type Task,
+} from "../services/tasks.service";
+import { HomeHeader } from "../components/home/HomeHeader";
+import { DailyProgressCard } from "../components/home/DailyProgressCard";
+import { TaskComposer } from "../components/home/TaskComposer";
+import { TaskList } from "../components/home/TaskList";
+
+function getDisplayName(email?: string) {
+    if (!email) return "Ninja";
+
+    const base = email.split("@")[0];
+
+    const cleaned = base
+        .replace(/[0-9]+/g, "")
+        .replace(/[._-]+/g, " ")
+        .trim();
+
+    if (!cleaned) return "Ninja";
+
+    const firstPart = cleaned.split(" ")[0] ?? "Ninja";
+    return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
+}
 
 export function HomeScreen() {
     const user = useAuthStore((s) => s.user);
+
     const [tasks, setTasks] = useState<Task[]>([]);
     const [title, setTitle] = useState("");
     const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
 
-    async function load() {
+    async function loadTasks() {
         setLoading(true);
         setMsg(null);
+
         const { data, error } = await fetchTasks();
+
         if (error) setMsg(`❌ ${error.message}`);
         else setTasks((data ?? []) as Task[]);
+
         setLoading(false);
     }
 
+    async function handleCreateTask() {
+        if (!user) return;
+
+        const trimmed = title.trim();
+        if (!trimmed) return;
+
+        setSubmitting(true);
+        setMsg(null);
+
+        const { error } = await createTask(user.id, trimmed);
+
+        if (error) {
+            setMsg(`❌ ${error.message}`);
+            setSubmitting(false);
+            return;
+        }
+
+        setTitle("");
+        await loadTasks();
+        setSubmitting(false);
+    }
+
+    async function handleToggleTask(task: Task) {
+        setMsg(null);
+
+        const next = !task.is_done;
+        const { error } = await toggleTaskDone(task.id, next);
+
+        if (error) {
+            setMsg(`❌ ${error.message}`);
+            return;
+        }
+
+        await loadTasks();
+    }
+
+    async function handleDeleteTask(taskId: string) {
+        setMsg(null);
+
+        const { error } = await deleteTask(taskId);
+
+        if (error) {
+            setMsg(`❌ ${error.message}`);
+            return;
+        }
+
+        await loadTasks();
+    }
+
     useEffect(() => {
-        load();
+        loadTasks();
     }, []);
+
+    const doneTasks = useMemo(
+        () => tasks.filter((task) => task.is_done).length,
+        [tasks]
+    );
+
+    const totalTasks = tasks.length;
+    const dailyGoal = 5;
+
+    const progressText = useMemo(() => {
+        if (totalTasks === 0) return "Tu día está despejado.";
+        if (doneTasks === 0) return "Todo listo para empezar con calma.";
+        if (doneTasks >= dailyGoal) return "Misión del día cumplida. Gran trabajo.";
+        return "Buen ritmo. Sigue así.";
+    }, [totalTasks, doneTasks, dailyGoal]);
+
+    const displayName = getDisplayName(user?.email);
 
     if (!user) return null;
 
     return (
-        <SafeAreaView style={{ flex: 1, padding: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: "700" }}>{copy.home.title}</Text>
-            <Text style={{ marginTop: 4, opacity: 0.7 }}>{user.email}</Text>
-
-            <View style={{ marginTop: 16, flexDirection: "row", gap: 8 }}>
-                <TextInput
-                    placeholder={copy.home.newTaskPlaceholder}
-                    value={title}
-                    onChangeText={setTitle}
-                    style={{ flex: 1, borderWidth: 1, borderRadius: 10, padding: 10 }}
-                />
-                <Button
-                    title="Añadir"
-                    onPress={async () => {
-                        const t = title.trim();
-                        if (!t) return;
-                        setMsg(null);
-                        const { error } = await createTask(user.id, t);
-                        if (error) setMsg(`❌ ${error.message}`);
-                        setTitle("");
-                        await load();
-                    }}
-                />
-            </View>
-
-            {msg ? <Text style={{ marginTop: 10 }}>{msg}</Text> : null}
-            <View style={{ marginTop: 10 }}>
-                <Button title={loading ? "Cargando..." : "Refrescar"} onPress={load} disabled={loading} />
-            </View>
-
-            <FlatList
-                style={{ marginTop: 16 }}
-                data={tasks}
-                keyExtractor={(item) => item.id}
-                ListEmptyComponent={<Text style={{ marginTop: 20, opacity: 0.7 }}>{copy.home.empty}</Text>}
-                renderItem={({ item }) => (
-                    <View
-                        style={{
-                            padding: 12,
-                            borderWidth: 1,
-                            borderRadius: 12,
-                            marginBottom: 10,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 10,
-                        }}
-                    >
-                        <Pressable
-                            onPress={async () => {
-                                const next = !item.is_done;
-
-                                const { data, error } = await toggleTaskDone(item.id, next);
-
-                                if (error) {
-                                    setMsg(`❌ Toggle error: ${error.message}`);
-                                    return;
-                                }
-
-                                console.log("TOGGLED OK:", data);
-                                await load();
-                            }}
-                            style={{ flex: 1 }}
-                        >
-
-                            <Text style={{ fontSize: 16, textDecorationLine: item.is_done ? "line-through" : "none" }}>
-                                {item.title}
-                            </Text>
-                            <Text style={{ marginTop: 4, opacity: 0.6, fontSize: 12 }}>
-                                {item.is_done ? "✅ Hecha" : "⬜ Pendiente"}
-                            </Text>
-                        </Pressable>
-
-                        <Button
-                            title="Borrar"
-                            onPress={async () => {
-                                await deleteTask(item.id);
-                                await load();
-                            }}
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <FlatList
+                    data={[{ id: "content" }]}
+                    keyExtractor={(item) => item.id}
+                    renderItem={() => (
+                        <TaskList
+                            tasks={tasks}
+                            onToggleTask={handleToggleTask}
+                            onDeleteTask={handleDeleteTask}
                         />
-                    </View>
-                )}
-            />
+                    )}
+                    contentContainerStyle={styles.content}
+                    showsVerticalScrollIndicator={false}
+                    ListHeaderComponent={
+                        <>
+                            <View style={styles.heroStack}>
+                                <HomeHeader name={displayName} />
 
-            <View style={{ marginTop: 8 }}>
-                <Button title="Cerrar sesión" onPress={async () => signOut()} />
+                                <DailyProgressCard
+                                    doneTasks={doneTasks}
+                                    totalTasks={totalTasks}
+                                    streakDays={3}
+                                />
+
+                                <Image
+                                    source={require("../../assets/brand/AlbeNinja.png")}
+                                    style={styles.heroMascot}
+                                    resizeMode="contain"
+                                />
+                            </View>
+
+                            <TaskComposer
+                                value={title}
+                                onChangeText={setTitle}
+                                onSubmit={handleCreateTask}
+                                disabled={submitting}
+                            />
+
+                            {msg ? <Text style={styles.message}>{msg}</Text> : null}
+
+                            <View style={styles.actionsRow}>
+                                <Pressable
+                                    onPress={loadTasks}
+                                    disabled={loading}
+                                    style={({ pressed }) => [
+                                        styles.secondaryButton,
+                                        pressed && styles.pressed,
+                                        loading && styles.disabled,
+                                    ]}
+                                >
+                                    <Text style={styles.secondaryButtonText}>
+                                        {loading ? "Actualizando..." : "Refrescar"}
+                                    </Text>
+                                </Pressable>
+
+                                <Pressable
+                                    onPress={async () => signOut()}
+                                    style={({ pressed }) => [
+                                        styles.ghostButton,
+                                        pressed && styles.pressed,
+                                    ]}
+                                >
+                                    <Text style={styles.ghostButtonText}>Cerrar sesión</Text>
+                                </Pressable>
+                            </View>
+                        </>
+                    }
+                />
             </View>
         </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: "#F7F8FC",
+    },
+    container: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
+    heroStack: {
+        position: "relative",
+        marginBottom: 10,
+    },
+
+    heroMascot: {
+        position: "absolute",
+        right: -6,
+        top: -6,
+        width: 220,
+        height: 220,
+        zIndex: 20,
+    },
+    content: {
+        paddingTop: 12,
+        paddingBottom: 32,
+    },
+    actionsRow: {
+        flexDirection: "row",
+        gap: 10,
+        marginBottom: 8,
+    },
+    secondaryButton: {
+        minHeight: 46,
+        paddingHorizontal: 16,
+        borderRadius: 14,
+        backgroundColor: "#EAEFFD",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    secondaryButtonText: {
+        color: "#33406B",
+        fontSize: 14,
+        fontWeight: "700",
+        fontFamily: "Poppins-SemiBold",
+    },
+    ghostButton: {
+        minHeight: 46,
+        paddingHorizontal: 16,
+        borderRadius: 14,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E3E8F2",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    ghostButtonText: {
+        color: "#4E5666",
+        fontSize: 14,
+        fontWeight: "700",
+        fontFamily: "Poppins-SemiBold",
+    },
+    message: {
+        marginBottom: 14,
+        fontSize: 14,
+        color: "#B44C4C",
+        fontFamily: "Poppins-Regular",
+    },
+    pressed: {
+        opacity: 0.85,
+    },
+    disabled: {
+        opacity: 0.6,
+    },
+});
