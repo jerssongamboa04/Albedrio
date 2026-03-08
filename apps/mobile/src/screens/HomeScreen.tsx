@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet, Image } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/auth.store";
 import { signOut } from "../services/auth.service";
@@ -14,6 +14,8 @@ import { HomeHeader } from "../components/home/HomeHeader";
 import { DailyProgressCard } from "../components/home/DailyProgressCard";
 import { TaskComposer } from "../components/home/TaskComposer";
 import { TaskList } from "../components/home/TaskList";
+import { MascotCharacter } from "../components/MascotCharacter";
+import { getMascotState } from "../features/home/utils/getMascotState";
 
 function getDisplayName(email?: string) {
     if (!email) return "Ninja";
@@ -113,6 +115,15 @@ export function HomeScreen() {
     const totalTasks = tasks.length;
     const dailyGoal = 5;
 
+    const mascotState = useMemo(
+        () =>
+            getMascotState({
+                completedTasks: doneTasks,
+                totalTasks,
+            }),
+        [doneTasks, totalTasks]
+    );
+
     const progressText = useMemo(() => {
         if (totalTasks === 0) return "Tu día está despejado.";
         if (doneTasks === 0) return "Todo listo para empezar con calma.";
@@ -150,11 +161,9 @@ export function HomeScreen() {
                                     streakDays={3}
                                 />
 
-                                <Image
-                                    source={require("../../assets/brand/AlbeNinja.png")}
-                                    style={styles.heroMascot}
-                                    resizeMode="contain"
-                                />
+                                <View style={styles.heroMascot}>
+                                    <MascotCharacter state={mascotState} />
+                                </View>
                             </View>
 
                             <TaskComposer
@@ -211,8 +220,8 @@ const styles = StyleSheet.create({
     heroStack: {
         position: "relative",
         marginBottom: 10,
+        overflow: "visible",
     },
-
     heroMascot: {
         position: "absolute",
         right: -6,
