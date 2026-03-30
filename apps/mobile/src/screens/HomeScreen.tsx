@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { View, Text, FlatList, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/auth.store";
 import { signOut } from "../services/auth.service";
@@ -16,6 +16,13 @@ import { TaskComposer } from "../components/home/TaskComposer";
 import { TaskList } from "../components/home/TaskList";
 import { MascotCharacter } from "../components/MascotCharacter";
 import { getMascotState } from "../features/home/utils/getMascotState";
+import { NextStepCard } from "../components/home/NextStepCard";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { AppStackParamList } from "../navigation/types";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
+
+type Props = NativeStackScreenProps<AppStackParamList, "Home">;
 
 function getDisplayName(email?: string) {
     if (!email) return "Ninja";
@@ -33,14 +40,14 @@ function getDisplayName(email?: string) {
     return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
 }
 
-export function HomeScreen() {
+export function HomeScreen({ navigation }: Props) {
     const user = useAuthStore((s) => s.user);
-
     const [tasks, setTasks] = useState<Task[]>([]);
     const [title, setTitle] = useState("");
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
+    const [suggestedIndex, setSuggestedIndex] = useState(0);
 
     async function loadTasks() {
         setLoading(true);
@@ -103,15 +110,25 @@ export function HomeScreen() {
         await loadTasks();
     }
 
-    useEffect(() => {
-        loadTasks();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadTasks();
+        }, [])
+    );
 
     const doneTasks = useMemo(
         () => tasks.filter((task) => task.is_done).length,
         [tasks]
     );
+    const pendingTasks = useMemo(
+        () => tasks.filter((task) => !task.is_done),
+        [tasks]
+    );
 
+    const nextSuggestedTask = useMemo(
+        () => pendingTasks[0]?.title ?? null,
+        [pendingTasks]
+    );
     const totalTasks = tasks.length;
     const dailyGoal = 5;
 
@@ -134,7 +151,30 @@ export function HomeScreen() {
     const displayName = getDisplayName(user?.email);
 
     if (!user) return null;
+    useEffect(() => {
+        setSuggestedIndex(0);
+    }, [pendingTasks.length]);
 
+    const suggestedTask = useMemo(() => {
+        if (pendingTasks.length === 0) return null;
+        return pendingTasks[suggestedIndex % pendingTasks.length] ?? null;
+    }, [pendingTasks, suggestedIndex]);
+
+    const suggestedTaskTitle = suggestedTask?.title ?? null;
+
+    function handleSeeAnotherSuggestion() {
+        if (pendingTasks.length <= 1) return;
+        setSuggestedIndex((prev) => (prev + 1) % pendingTasks.length);
+    }
+
+    function handleStartSuggestedTask() {
+        if (!suggestedTask) return;
+
+        navigation.navigate("TaskStartScreen", {
+            taskId: suggestedTask.id,
+            taskTitle: suggestedTask.title,
+        });
+    }
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
@@ -165,7 +205,11 @@ export function HomeScreen() {
                                     <MascotCharacter state={mascotState} />
                                 </View>
                             </View>
-
+                            <NextStepCard
+                                suggestedTask={suggestedTaskTitle}
+                                onStart={handleStartSuggestedTask}
+                                onSeeAnother={handleSeeAnotherSuggestion}
+                            />
                             <TaskComposer
                                 value={title}
                                 onChangeText={setTitle}
@@ -175,31 +219,7 @@ export function HomeScreen() {
 
                             {msg ? <Text style={styles.message}>{msg}</Text> : null}
 
-                            <View style={styles.actionsRow}>
-                                <Pressable
-                                    onPress={loadTasks}
-                                    disabled={loading}
-                                    style={({ pressed }) => [
-                                        styles.secondaryButton,
-                                        pressed && styles.pressed,
-                                        loading && styles.disabled,
-                                    ]}
-                                >
-                                    <Text style={styles.secondaryButtonText}>
-                                        {loading ? "Actualizando..." : "Refrescar"}
-                                    </Text>
-                                </Pressable>
 
-                                <Pressable
-                                    onPress={async () => signOut()}
-                                    style={({ pressed }) => [
-                                        styles.ghostButton,
-                                        pressed && styles.pressed,
-                                    ]}
-                                >
-                                    <Text style={styles.ghostButtonText}>Cerrar sesión</Text>
-                                </Pressable>
-                            </View>
                         </>
                     }
                 />

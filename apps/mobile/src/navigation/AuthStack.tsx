@@ -6,6 +6,7 @@ import { AuthScreen } from "../screens/AuthScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
 import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { ResetPasswordScreen } from "../screens/ResetPasswordScreen";
+import { TaskStartScreen } from "../screens/TaskStartScreen";
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 

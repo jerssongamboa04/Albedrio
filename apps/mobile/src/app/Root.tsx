@@ -21,7 +21,7 @@ export function Root() {
   const authSubRef = useRef<ReturnType<typeof supabase.auth.onAuthStateChange> | null>(null);
   const lastHandledUrlRef = useRef<string | null>(null);
 
-  // ✅ Hook “estable” para links (como en el ejemplo oficial)
+  // ✅ Hook “estable” para links 
   const url = Linking.useURL();
 
   async function handleAuthRedirect(incomingUrl: string) {
