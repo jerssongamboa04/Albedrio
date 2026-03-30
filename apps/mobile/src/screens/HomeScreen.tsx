@@ -21,7 +21,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
-
+import { ManageTasksCard } from "../components/home/ManageTasksCard";
 type Props = NativeStackScreenProps<AppStackParamList, "Home">;
 
 function getDisplayName(email?: string) {
@@ -210,11 +210,11 @@ export function HomeScreen({ navigation }: Props) {
                                 onStart={handleStartSuggestedTask}
                                 onSeeAnother={handleSeeAnotherSuggestion}
                             />
-                            <TaskComposer
-                                value={title}
-                                onChangeText={setTitle}
-                                onSubmit={handleCreateTask}
-                                disabled={submitting}
+
+                            <ManageTasksCard
+                                onPress={() => {
+                                    navigation.navigate("TaskManagementScreen");
+                                }}
                             />
 
                             {msg ? <Text style={styles.message}>{msg}</Text> : null}

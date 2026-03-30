@@ -1,9 +1,12 @@
+import type { Task } from "../services/tasks.service";
+
 export type AppStackParamList = {
   Home: undefined;
   TaskStartScreen: {
     taskId: string;
     taskTitle: string;
   };
+  TaskManagementScreen: undefined;
 };
 
 export type AuthStackParamList = {

@@ -10,7 +10,7 @@ type NextStepCardProps = {
 };
 
 export function NextStepCard({
-  title = "Tu siguiente paso",
+  title = "Tarea Recomendada",
   suggestedTask,
   onStart,
   onSeeAnother,
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.xl,
     padding: theme.spacing(2.5),
-    marginTop: theme.spacing(1),
     borderWidth: 1,
     borderColor: theme.colors.stroke,
     shadowColor: "#000",
