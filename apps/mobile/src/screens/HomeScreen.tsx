@@ -18,12 +18,25 @@ import { MascotCharacter } from "../components/MascotCharacter";
 import { getMascotState } from "../features/home/utils/getMascotState";
 import { NextStepCard } from "../components/home/NextStepCard";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { AppStackParamList } from "../navigation/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { ManageTasksCard } from "../components/home/ManageTasksCard";
-type Props = NativeStackScreenProps<AppStackParamList, "Home">;
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import type { AppStackParamList, AppTabsParamList } from "../navigation/types";
+import { TaskStartScreen } from "../screens/TaskStartScreen";
+import { AppTabs } from "../navigation/AppTabs";
+import type { CompositeScreenProps } from "@react-navigation/native";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+const Stack = createNativeStackNavigator<AppStackParamList>();
 
+export function AppStack() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="MainTabs" component={AppTabs} />
+            <Stack.Screen name="TaskStartScreen" component={TaskStartScreen} />
+        </Stack.Navigator>
+    );
+}
 function getDisplayName(email?: string) {
     if (!email) return "Ninja";
 
@@ -39,7 +52,10 @@ function getDisplayName(email?: string) {
     const firstPart = cleaned.split(" ")[0] ?? "Ninja";
     return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
 }
-
+type Props = CompositeScreenProps<
+    BottomTabScreenProps<AppTabsParamList, "Home">,
+    NativeStackScreenProps<AppStackParamList>
+>;
 export function HomeScreen({ navigation }: Props) {
     const user = useAuthStore((s) => s.user);
     const [tasks, setTasks] = useState<Task[]>([]);

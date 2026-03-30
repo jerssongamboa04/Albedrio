@@ -48,17 +48,12 @@ export function TaskTabs({ activeTab, onChangeTab }: TaskTabsProps) {
 const styles = StyleSheet.create({
   wrapper: {
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 22,
-    padding: 4,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: theme.colors.stroke,
+    gap: 6,
   },
 
   tab: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -71,7 +66,7 @@ const styles = StyleSheet.create({
 
   tabText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: "#7D7697",
     fontFamily: "Poppins-SemiBold",
   },
 

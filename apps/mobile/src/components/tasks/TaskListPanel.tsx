@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { Task } from "../../services/tasks.service";
-import { TaskList } from "../home/TaskList";
+import { TaskRowCard } from "./TaskRowCard";
+import { TasksEmptyState } from "../tasks/TaskEmptyState";
 import { theme } from "../../lib/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 type TasksListPanelProps = {
   tasks: Task[];
@@ -14,18 +16,77 @@ export function TasksListPanel({
   onToggleTask,
   onDeleteTask,
 }: TasksListPanelProps) {
+  const pendingTasks = tasks.filter((task) => !task.is_done);
+  const completedTasks = tasks.filter((task) => task.is_done);
+
+  const hasNoTasks = tasks.length === 0;
+
+  if (hasNoTasks) {
+    return (
+      <View style={styles.container}>
+        <TasksEmptyState
+          title="No hay tareas"
+          description="Ahora mismo tienes este espacio despejado."
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tus tareas</Text>
-      <Text style={styles.subtitle}>
-        Aquí puedes consultar y gestionar tus tareas actuales.
-      </Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons
+          name="ellipse-outline"
+          size={20}
+          color={theme.colors.primary}
+        />
+        <Text style={styles.sectionTitle}>Pendientes</Text>
+      </View>
 
-      <TaskList
-        tasks={tasks}
-        onToggleTask={onToggleTask}
-        onDeleteTask={onDeleteTask}
-      />
+      <View style={styles.groupCard}>
+        {pendingTasks.length > 0 ? (
+          pendingTasks.map((task) => (
+            <TaskRowCard
+              key={task.id}
+              task={task}
+              onToggle={onToggleTask}
+              onDelete={onDeleteTask}
+            />
+          ))
+        ) : (
+          <TasksEmptyState
+            title="Nada pendiente"
+            description="Hoy no tienes tareas pendientes por resolver."
+          />
+        )}
+      </View>
+
+      <View style={[styles.sectionHeader, styles.completedHeader]}>
+        <Ionicons
+          name="checkmark-circle"
+          size={20}
+          color="#4D8A5B"
+        />
+        <Text style={styles.completedTitle}>Completadas</Text>
+      </View>
+
+      <View style={styles.groupCard}>
+        {completedTasks.length > 0 ? (
+          completedTasks.map((task) => (
+            <TaskRowCard
+              key={task.id}
+              task={task}
+              onToggle={onToggleTask}
+              onDelete={onDeleteTask}
+            />
+          ))
+        ) : (
+          <TasksEmptyState
+            title="Aún no hay completadas"
+            description="Cuando cierres alguna tarea, aparecerá aquí."
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -35,18 +96,44 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
 
-  title: {
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+
+  completedHeader: {
+    marginTop: 8,
+  },
+
+  sectionIcon: {
+    fontSize: 24,
+  },
+
+  completedIcon: {
+    fontSize: 22,
+  },
+
+  sectionTitle: {
     fontSize: 22,
     color: theme.colors.text,
     fontFamily: "Poppins-Bold",
-    marginBottom: 6,
   },
 
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: theme.colors.muted,
-    fontFamily: "Poppins-Regular",
-    marginBottom: 14,
+  completedTitle: {
+    fontSize: 22,
+    color: "#4D8A5B",
+    fontFamily: "Poppins-Bold",
+  },
+
+  groupCard: {
+    backgroundColor: "rgba(255,255,255,0.40)",
+    borderRadius: 28,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(123,92,255,0.10)",
+    marginBottom: 20,
   },
 });

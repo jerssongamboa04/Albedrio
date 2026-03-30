@@ -1,12 +1,14 @@
-import type { Task } from "../services/tasks.service";
+export type AppTabsParamList = {
+  Home: undefined;
+  TaskManagementScreen: undefined;
+};
 
 export type AppStackParamList = {
-  Home: undefined;
+  MainTabs: undefined;
   TaskStartScreen: {
     taskId: string;
     taskTitle: string;
   };
-  TaskManagementScreen: undefined;
 };
 
 export type AuthStackParamList = {
