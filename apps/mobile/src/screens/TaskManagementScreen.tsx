@@ -1,54 +1,53 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+
 import { theme } from "../lib/theme";
+import { useAuthStore } from "../store/auth.store";
+import { useTasksStore } from "../store/tasks.store";
+
 import { TaskTabs, type TaskTabKey } from "../components/tasks/TaskTabs";
 import { TasksListPanel } from "../components/tasks/TaskListPanel";
 import { CreateTaskPanel } from "../components/tasks/CreateTaskPanel";
 import { TasksMetricsPanel } from "../components/tasks/TaskMetricsPanel";
-import {
-  createTask,
-  deleteTask,
-  fetchTasks,
-  toggleTaskDone,
-  type Task,
-} from "../services/tasks.service";
-import { useAuthStore } from "../store/auth.store";
-import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+
+import type { Task, CreateTaskInput } from "../services/tasks.service";
 import type { AppTabsParamList } from "../navigation/types";
 
 type Props = BottomTabScreenProps<AppTabsParamList, "TaskManagementScreen">;
 
+const INITIAL_CREATE_TASK_FORM: CreateTaskInput = {
+  title: "",
+  notes: null,
+  due_date: null,
+  task_type: "one_time",
+  estimated_minutes: null,
+  priority: "medium",
+  energy_level: "medium",
+  clarity_level: "clear",
+  difficulty_level: "medium",
+  day_moment: null,
+};
+
 export function TaskManagementScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
 
+  const tasks = useTasksStore((s) => s.tasks);
+  const saving = useTasksStore((s) => s.saving);
+  const error = useTasksStore((s) => s.error);
+  const loadTasks = useTasksStore((s) => s.loadTasks);
+  const addTask = useTasksStore((s) => s.addTask);
+  const toggleTaskDone = useTasksStore((s) => s.toggleTaskDone);
+  const removeTask = useTasksStore((s) => s.removeTask);
+
   const [activeTab, setActiveTab] = useState<TaskTabKey>("tasks");
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [title, setTitle] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState<CreateTaskInput>(INITIAL_CREATE_TASK_FORM);
   const [msg, setMsg] = useState<string | null>(null);
-
-  async function loadTasks() {
-    setMsg(null);
-
-    const { data, error } = await fetchTasks();
-
-    if (error) {
-      setMsg(`❌ ${error.message}`);
-      return;
-    }
-
-    setTasks((data ?? []) as Task[]);
-  }
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [loadTasks]);
 
   const doneTasks = useMemo(
     () => tasks.filter((task) => task.is_done).length,
@@ -63,23 +62,26 @@ export function TaskManagementScreen({ navigation }: Props) {
   async function handleCreateTask() {
     if (!user) return;
 
-    const trimmed = title.trim();
+    const trimmed = form.title.trim();
     if (!trimmed) return;
 
-    setSubmitting(true);
     setMsg(null);
 
-    const { error } = await createTask(user.id, trimmed);
+    const payload: CreateTaskInput = {
+      ...form,
+      title: trimmed,
+      due_date: form.task_type === "one_time" ? form.due_date ?? null : null,
+      day_moment: form.task_type === "daily" ? form.day_moment ?? "any" : null,
+    };
 
-    if (error) {
-      setMsg(`❌ ${error.message}`);
-      setSubmitting(false);
+    const result = await addTask(user.id, payload);
+
+    if (result.error) {
+      setMsg(`❌ ${result.error}`);
       return;
     }
 
-    setTitle("");
-    await loadTasks();
-    setSubmitting(false);
+    setForm(INITIAL_CREATE_TASK_FORM);
     setActiveTab("tasks");
   }
 
@@ -87,27 +89,21 @@ export function TaskManagementScreen({ navigation }: Props) {
     setMsg(null);
 
     const next = !task.is_done;
-    const { error } = await toggleTaskDone(task.id, next);
+    const result = await toggleTaskDone(task.id, next);
 
-    if (error) {
-      setMsg(`❌ ${error.message}`);
-      return;
+    if (result.error) {
+      setMsg(`❌ ${result.error}`);
     }
-
-    await loadTasks();
   }
 
   async function handleDeleteTask(taskId: string) {
     setMsg(null);
 
-    const { error } = await deleteTask(taskId);
+    const result = await removeTask(taskId);
 
-    if (error) {
-      setMsg(`❌ ${error.message}`);
-      return;
+    if (result.error) {
+      setMsg(`❌ ${result.error}`);
     }
-
-    await loadTasks();
   }
 
   return (
@@ -140,6 +136,7 @@ export function TaskManagementScreen({ navigation }: Props) {
           </View>
 
           {msg ? <Text style={styles.message}>{msg}</Text> : null}
+          {error ? <Text style={styles.message}>{`❌ ${error}`}</Text> : null}
 
           <View style={styles.panelWrap}>
             {activeTab === "tasks" ? (
@@ -152,10 +149,10 @@ export function TaskManagementScreen({ navigation }: Props) {
 
             {activeTab === "create" ? (
               <CreateTaskPanel
-                value={title}
-                onChangeText={setTitle}
+                form={form}
+                onChange={setForm}
                 onSubmit={handleCreateTask}
-                disabled={submitting}
+                disabled={saving}
               />
             ) : null}
 
@@ -169,7 +166,6 @@ export function TaskManagementScreen({ navigation }: Props) {
             ) : null}
           </View>
         </ScrollView>
-
       </View>
     </SafeAreaView>
   );
