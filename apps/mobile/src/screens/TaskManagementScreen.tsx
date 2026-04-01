@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { CompositeScreenProps } from "@react-navigation/native";
 
 import { theme } from "../lib/theme";
 import { useAuthStore } from "../store/auth.store";
@@ -13,9 +15,12 @@ import { CreateTaskPanel } from "../components/tasks/CreateTaskPanel";
 import { TasksMetricsPanel } from "../components/tasks/TaskMetricsPanel";
 
 import type { Task, CreateTaskInput } from "../services/tasks.service";
-import type { AppTabsParamList } from "../navigation/types";
+import type { AppTabsParamList, AppStackParamList } from "../navigation/types";
 
-type Props = BottomTabScreenProps<AppTabsParamList, "TaskManagementScreen">;
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<AppTabsParamList, "TaskManagementScreen">,
+  NativeStackScreenProps<AppStackParamList>
+>;
 
 const INITIAL_CREATE_TASK_FORM: CreateTaskInput = {
   title: "",
@@ -106,6 +111,12 @@ export function TaskManagementScreen({ navigation }: Props) {
     }
   }
 
+  function handleOpenTaskDetail(task: Task) {
+    navigation.navigate("TaskDetailScreen", {
+      taskId: task.id,
+    });
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.root}>
@@ -144,6 +155,7 @@ export function TaskManagementScreen({ navigation }: Props) {
                 tasks={tasks}
                 onToggleTask={handleToggleTask}
                 onDeleteTask={handleDeleteTask}
+                onPressTask={handleOpenTaskDetail}
               />
             ) : null}
 

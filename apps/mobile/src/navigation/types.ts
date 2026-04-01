@@ -9,6 +9,9 @@ export type AppStackParamList = {
     taskId: string;
     taskTitle: string;
   };
+  TaskDetailScreen: {
+    taskId: string;
+  };
 };
 
 export type AuthStackParamList = {

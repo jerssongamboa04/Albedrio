@@ -9,12 +9,14 @@ type TasksListPanelProps = {
   tasks: Task[];
   onToggleTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onPressTask?: (task: Task) => void;
 };
 
 export function TasksListPanel({
   tasks,
   onToggleTask,
   onDeleteTask,
+  onPressTask,
 }: TasksListPanelProps) {
   const pendingTasks = tasks.filter((task) => !task.is_done);
   const completedTasks = tasks.filter((task) => task.is_done);
@@ -51,6 +53,7 @@ export function TasksListPanel({
               task={task}
               onToggle={onToggleTask}
               onDelete={onDeleteTask}
+              onPress={onPressTask}
             />
           ))
         ) : (
@@ -62,11 +65,7 @@ export function TasksListPanel({
       </View>
 
       <View style={[styles.sectionHeader, styles.completedHeader]}>
-        <Ionicons
-          name="checkmark-circle"
-          size={20}
-          color="#4D8A5B"
-        />
+        <Ionicons name="checkmark-circle" size={20} color="#4D8A5B" />
         <Text style={styles.completedTitle}>Completadas</Text>
       </View>
 
@@ -78,6 +77,7 @@ export function TasksListPanel({
               task={task}
               onToggle={onToggleTask}
               onDelete={onDeleteTask}
+              onPress={onPressTask}
             />
           ))
         ) : (
