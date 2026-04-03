@@ -12,6 +12,9 @@ export type AppStackParamList = {
   TaskDetailScreen: {
     taskId: string;
   };
+  AntiBlockScreen: {
+    taskId: string;
+  };
 };
 
 export type AuthStackParamList = {

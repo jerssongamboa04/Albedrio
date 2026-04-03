@@ -151,15 +151,6 @@ export function TaskDetailScreen({ route, navigation }: Props) {
     [tasks, taskId]
   );
 
-  const shouldSuggestBreakdown =
-    task?.clarity_level === "somewhat_clear" ||
-    task?.clarity_level === "blocked" ||
-    task?.difficulty_level === "hard";
-
-  const shouldSuggestAntiBlock =
-    task?.clarity_level === "blocked" ||
-    task?.difficulty_level === "hard";
-
   if (!task) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -176,6 +167,42 @@ export function TaskDetailScreen({ route, navigation }: Props) {
         </View>
       </SafeAreaView>
     );
+  }
+
+  const shouldSuggestBreakdown =
+    task.clarity_level === "somewhat_clear" ||
+    task.clarity_level === "blocked" ||
+    task.difficulty_level === "hard";
+
+  const shouldSuggestAntiBlock =
+    task.clarity_level === "blocked" ||
+    task.difficulty_level === "hard" ||
+    task.energy_level === "high";
+
+  const isSimpleExecutableTask =
+    task.clarity_level === "clear" &&
+    task.difficulty_level === "light" &&
+    task.energy_level === "low";
+
+  function handleOpenAntiBlock() {
+    if (!task) return;
+
+    navigation.navigate("AntiBlockScreen", {
+      taskId: task.id,
+    });
+  }
+
+  function handleOpenBreakdown() {
+    // Próximo paso: conectar BreakdownScreen
+  }
+
+  function handleStartTask() {
+    if (!task) return;
+
+    navigation.navigate("TaskStartScreen", {
+      taskId: task.id,
+      taskTitle: task.title,
+    });
   }
 
   const dueDateLabel = formatDueDate(task.due_date);
@@ -255,47 +282,132 @@ export function TaskDetailScreen({ route, navigation }: Props) {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Ayuda para avanzar</Text>
 
-          <View style={styles.actionCardWrap}>
-            <View style={styles.actionCard}>
-              <View style={styles.actionCardHeader}>
-                <View style={styles.actionIconWrap}>
-                  <Ionicons name="git-branch-outline" size={18} color="#7B5CFF" />
+          {isSimpleExecutableTask ? (
+            <View style={styles.readyCard}>
+              <View style={styles.readyCardHeader}>
+                <View style={styles.readyIconWrap}>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#7B5CFF" />
                 </View>
-                <View style={styles.actionTextWrap}>
-                  <Text style={styles.actionTitle}>Descomponer tarea</Text>
-                  <Text style={styles.actionSubtitle}>
-                    Convierte esta tarea en pasos más manejables.
+
+                <View style={styles.readyTextWrap}>
+                  <Text style={styles.readyTitle}>
+                    Esta tarea ya parece bastante clara
+                  </Text>
+                  <Text style={styles.readySubtitle}>
+                    Aquí no parece hacer falta ayuda extra para empezar.
                   </Text>
                 </View>
               </View>
 
-              {shouldSuggestBreakdown ? (
-                <View style={styles.suggestionBadge}>
-                  <Text style={styles.suggestionBadgeText}>Recomendado</Text>
-                </View>
-              ) : null}
+              <Pressable
+                onPress={handleStartTask}
+                style={({ pressed }) => [
+                  styles.primaryActionButton,
+                  pressed && styles.actionCardPressed,
+                ]}
+              >
+                <Ionicons name="play-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.primaryActionButtonText}>Empezar con esto</Text>
+              </Pressable>
             </View>
+          ) : (
+            <View style={styles.actionCardWrap}>
+              {shouldSuggestBreakdown ? (
+                <Pressable
+                  onPress={handleOpenBreakdown}
+                  style={({ pressed }) => [
+                    styles.actionCard,
+                    pressed && styles.actionCardPressed,
+                  ]}
+                >
+                  <View style={styles.actionCardHeader}>
+                    <View style={styles.actionIconWrap}>
+                      <Ionicons name="git-branch-outline" size={18} color="#7B5CFF" />
+                    </View>
+                    <View style={styles.actionTextWrap}>
+                      <Text style={styles.actionTitle}>Descomponer tarea</Text>
+                      <Text style={styles.actionSubtitle}>
+                        Convierte esta tarea en pasos más manejables.
+                      </Text>
+                    </View>
 
-            <View style={styles.actionCard}>
-              <View style={styles.actionCardHeader}>
-                <View style={styles.actionIconWrap}>
-                  <Ionicons name="sparkles-outline" size={18} color="#7B5CFF" />
-                </View>
-                <View style={styles.actionTextWrap}>
-                  <Text style={styles.actionTitle}>Modo anti-bloqueo</Text>
-                  <Text style={styles.actionSubtitle}>
-                    Encuentra una forma más fácil de empezar.
-                  </Text>
-                </View>
-              </View>
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={18}
+                      color="#9A92B3"
+                    />
+                  </View>
+
+                  <View style={styles.suggestionBadge}>
+                    <Text style={styles.suggestionBadgeText}>Recomendado</Text>
+                  </View>
+                </Pressable>
+              ) : null}
 
               {shouldSuggestAntiBlock ? (
-                <View style={styles.suggestionBadge}>
-                  <Text style={styles.suggestionBadgeText}>Muy útil aquí</Text>
+                <Pressable
+                  onPress={handleOpenAntiBlock}
+                  style={({ pressed }) => [
+                    styles.actionCard,
+                    styles.actionCardHighlighted,
+                    pressed && styles.actionCardPressed,
+                  ]}
+                >
+                  <View style={styles.actionCardHeader}>
+                    <View style={[styles.actionIconWrap, styles.actionIconWrapHighlighted]}>
+                      <Ionicons name="sparkles-outline" size={18} color="#7B5CFF" />
+                    </View>
+                    <View style={styles.actionTextWrap}>
+                      <Text style={styles.actionTitle}>Modo anti-bloqueo</Text>
+                      <Text style={styles.actionSubtitle}>
+                        Encuentra una forma más fácil de empezar.
+                      </Text>
+                    </View>
+
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={18}
+                      color="#9A92B3"
+                    />
+                  </View>
+
+                  <View style={styles.suggestionBadge}>
+                    <Text style={styles.suggestionBadgeText}>Muy útil aquí</Text>
+                  </View>
+                </Pressable>
+              ) : null}
+
+              {!shouldSuggestBreakdown && !shouldSuggestAntiBlock ? (
+                <View style={styles.neutralHelpCard}>
+                  <View style={styles.readyCardHeader}>
+                    <View style={styles.readyIconWrap}>
+                      <Ionicons name="play-circle-outline" size={20} color="#7B5CFF" />
+                    </View>
+
+                    <View style={styles.readyTextWrap}>
+                      <Text style={styles.readyTitle}>
+                        Puedes empezar directamente
+                      </Text>
+                      <Text style={styles.readySubtitle}>
+                        Esta tarea no parece necesitar ayuda extra para arrancar.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    onPress={handleStartTask}
+                    style={({ pressed }) => [
+                      styles.primaryActionButton,
+                      pressed && styles.actionCardPressed,
+                    ]}
+                  >
+                    <Ionicons name="play-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.primaryActionButtonText}>Empezar con esto</Text>
+                  </Pressable>
                 </View>
               ) : null}
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -484,6 +596,16 @@ const styles = StyleSheet.create({
     padding: 14,
   },
 
+  actionCardHighlighted: {
+    backgroundColor: "#F7F1FF",
+    borderColor: "#E4D7FF",
+  },
+
+  actionCardPressed: {
+    opacity: 0.95,
+    transform: [{ scale: 0.995 }],
+  },
+
   actionCardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -497,6 +619,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  actionIconWrapHighlighted: {
+    backgroundColor: "#FFFFFF",
   },
 
   actionTextWrap: {
@@ -532,6 +658,77 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#7B5CFF",
     fontFamily: "Poppins-SemiBold",
+  },
+
+  readyCard: {
+    borderRadius: 20,
+    backgroundColor: "#F8F5FF",
+    borderWidth: 1,
+    borderColor: "#E6DDFA",
+    padding: 14,
+  },
+
+  neutralHelpCard: {
+    borderRadius: 20,
+    backgroundColor: "#FAF8FF",
+    borderWidth: 1,
+    borderColor: "#E7E0FF",
+    padding: 14,
+  },
+
+  readyCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 14,
+  },
+
+  readyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  readyTextWrap: {
+    flex: 1,
+  },
+
+  readyTitle: {
+    fontSize: 15,
+    color: theme.colors.text,
+    fontFamily: "Poppins-SemiBold",
+    marginBottom: 4,
+  },
+
+  readySubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#736D8D",
+    fontFamily: "Poppins-Regular",
+  },
+
+  primaryActionButton: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#7B5CFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#7B5CFF",
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+
+  primaryActionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Poppins-Bold",
   },
 
   notFoundWrap: {
