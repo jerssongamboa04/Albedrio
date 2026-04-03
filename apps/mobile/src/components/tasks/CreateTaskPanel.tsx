@@ -322,19 +322,19 @@ export function CreateTaskPanel({
       <View style={styles.card}>
         <View style={styles.sectionTitleRow}>
           <Ionicons name="pencil-outline" size={18} color="#7B5CFF" />
-          <Text style={styles.sectionTitle}>¿Qué tienes que hacer?</Text>
+          <Text style={styles.sectionTitle}>¿Qué acción quieres hacer?</Text>
         </View>
 
         <TextInput
           value={form.title}
           onChangeText={(text) => updateField("title", text)}
-          placeholder="Ej. avanzar el apartado 8 de la memoria"
+          placeholder="Empieza con un verbo. Ej. aspirar el cuarto"
           placeholderTextColor="#AAA4BE"
           style={styles.titleInput}
         />
 
         <Text style={styles.helperText}>
-          Ponlo como tú lo entiendas ahora. Luego Albendrio te ayuda a aterrizarlo.
+          Cuanto más clara sea la acción, mejor podrá ayudarte Albendrio a proponerte por dónde empezar.
         </Text>
       </View>
 
