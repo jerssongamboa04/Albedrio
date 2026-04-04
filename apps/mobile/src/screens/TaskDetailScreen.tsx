@@ -193,7 +193,11 @@ export function TaskDetailScreen({ route, navigation }: Props) {
   }
 
   function handleOpenBreakdown() {
-    // Próximo paso: conectar BreakdownScreen
+    if (!task) return;
+
+    navigation.navigate("BreakdownScreen", {
+      taskId: task.id,
+    });
   }
 
   function handleStartTask() {
