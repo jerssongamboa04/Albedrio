@@ -10,6 +10,7 @@ type TasksListPanelProps = {
   onToggleTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onPressTask?: (task: Task) => void;
+  completedTodayTaskIds?: string[];
 };
 
 export function TasksListPanel({
@@ -17,9 +18,25 @@ export function TasksListPanel({
   onToggleTask,
   onDeleteTask,
   onPressTask,
+  completedTodayTaskIds,
 }: TasksListPanelProps) {
-  const pendingTasks = tasks.filter((task) => !task.is_done);
-  const completedTasks = tasks.filter((task) => task.is_done);
+  const completedTodaySet = new Set(completedTodayTaskIds ?? []);
+
+  function getEffectiveIsDone(task: Task) {
+    // Compatibilidad total mientras no se inyecte la nueva fuente
+    if (!completedTodayTaskIds) {
+      return task.is_done;
+    }
+
+    if (task.task_type === "daily") {
+      return completedTodaySet.has(task.id);
+    }
+
+    return task.is_done;
+  }
+
+  const pendingTasks = tasks.filter((task) => !getEffectiveIsDone(task));
+  const completedTasks = tasks.filter((task) => getEffectiveIsDone(task));
 
   const hasNoTasks = tasks.length === 0;
 
@@ -54,6 +71,7 @@ export function TasksListPanel({
               onToggle={onToggleTask}
               onDelete={onDeleteTask}
               onPress={onPressTask}
+              isDoneOverride={getEffectiveIsDone(task)}
             />
           ))
         ) : (
@@ -78,6 +96,7 @@ export function TasksListPanel({
               onToggle={onToggleTask}
               onDelete={onDeleteTask}
               onPress={onPressTask}
+              isDoneOverride={getEffectiveIsDone(task)}
             />
           ))
         ) : (

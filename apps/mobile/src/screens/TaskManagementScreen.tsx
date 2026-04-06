@@ -4,7 +4,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CompositeScreenProps } from "@react-navigation/native";
-
+import {
+  fetchTrackingSummary,
+  type TrackingSummary,
+} from "../services/progress.service";
+import { fetchTodayCompletedTaskIds } from "../services/taskCompletions.service";
 import { theme } from "../lib/theme";
 import { useAuthStore } from "../store/auth.store";
 import { useTasksStore } from "../store/tasks.store";
@@ -49,19 +53,64 @@ export function TaskManagementScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TaskTabKey>("tasks");
   const [form, setForm] = useState<CreateTaskInput>(INITIAL_CREATE_TASK_FORM);
   const [msg, setMsg] = useState<string | null>(null);
+  const [completedTodayTaskIds, setCompletedTodayTaskIds] = useState<string[]>(
+    []
+  );
+  const [trackingSummary, setTrackingSummary] =
+    useState<TrackingSummary | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+
+  async function loadCompletedTodayTaskIds() {
+    const { data, error } = await fetchTodayCompletedTaskIds();
+
+    if (error) {
+      setCompletedTodayTaskIds([]);
+      return;
+    }
+
+    const ids = (data ?? []).map((row) => row.task_id);
+    setCompletedTodayTaskIds(ids);
+  }
+
+  async function loadTrackingSummary() {
+    setTrackingLoading(true);
+
+    const { data, error } = await fetchTrackingSummary();
+
+    if (error) {
+      setTrackingSummary(null);
+      setTrackingLoading(false);
+      return;
+    }
+
+    setTrackingSummary(data);
+    setTrackingLoading(false);
+  }
 
   useEffect(() => {
     loadTasks();
+    loadCompletedTodayTaskIds();
+    loadTrackingSummary();
   }, [loadTasks]);
 
+  const completedTodaySet = useMemo(
+    () => new Set(completedTodayTaskIds),
+    [completedTodayTaskIds]
+  );
+
   const doneTasks = useMemo(
-    () => tasks.filter((task) => task.is_done).length,
-    [tasks]
+    () =>
+      tasks.filter((task) =>
+        task.task_type === "daily"
+          ? completedTodaySet.has(task.id)
+          : task.is_done
+      ).length,
+    [tasks, completedTodaySet]
   );
 
   const pendingTasks = useMemo(
-    () => tasks.filter((task) => !task.is_done).length,
-    [tasks]
+    () => tasks.length - doneTasks,
+    [tasks.length, doneTasks]
   );
 
   async function handleCreateTask() {
@@ -93,12 +142,21 @@ export function TaskManagementScreen({ navigation }: Props) {
   async function handleToggleTask(task: Task) {
     setMsg(null);
 
-    const next = !task.is_done;
+    const isDoneNow =
+      task.task_type === "daily"
+        ? completedTodayTaskIds.includes(task.id)
+        : task.is_done;
+
+    const next = !isDoneNow;
     const result = await toggleTaskDone(task.id, next);
 
     if (result.error) {
       setMsg(`❌ ${result.error}`);
+      return;
     }
+
+    await loadCompletedTodayTaskIds();
+    await loadTrackingSummary();
   }
 
   async function handleDeleteTask(taskId: string) {
@@ -108,7 +166,11 @@ export function TaskManagementScreen({ navigation }: Props) {
 
     if (result.error) {
       setMsg(`❌ ${result.error}`);
+      return;
     }
+
+    await loadCompletedTodayTaskIds();
+    await loadTrackingSummary();
   }
 
   function handleOpenTaskDetail(task: Task) {
@@ -156,6 +218,7 @@ export function TaskManagementScreen({ navigation }: Props) {
                 onToggleTask={handleToggleTask}
                 onDeleteTask={handleDeleteTask}
                 onPressTask={handleOpenTaskDetail}
+                completedTodayTaskIds={completedTodayTaskIds}
               />
             ) : null}
 
@@ -170,10 +233,8 @@ export function TaskManagementScreen({ navigation }: Props) {
 
             {activeTab === "metrics" ? (
               <TasksMetricsPanel
-                totalTasks={tasks.length}
-                doneTasks={doneTasks}
-                pendingTasks={pendingTasks}
-                streakDays={3}
+                summary={trackingSummary}
+                loading={trackingLoading}
               />
             ) : null}
           </View>

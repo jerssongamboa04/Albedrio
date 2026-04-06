@@ -8,6 +8,7 @@ type TaskRowCardProps = {
   onToggle: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onPress?: (task: Task) => void;
+  isDoneOverride?: boolean;
 };
 
 function getPriorityLabel(priority: Task["priority"]) {
@@ -79,8 +80,9 @@ export function TaskRowCard({
   onToggle,
   onDelete,
   onPress,
+  isDoneOverride,
 }: TaskRowCardProps) {
-  const isDone = task.is_done;
+  const isDone = isDoneOverride ?? task.is_done;
   const priorityLabel = getPriorityLabel(task.priority);
   const priorityStyles = getPriorityStyles(task.priority);
   const estimatedLabel = formatEstimatedMinutes(task.estimated_minutes);

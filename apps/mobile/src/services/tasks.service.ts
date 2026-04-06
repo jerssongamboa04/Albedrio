@@ -41,6 +41,13 @@ export type CreateTaskInput = {
   day_moment: TaskDayMoment | null;
 };
 
+function getLocalDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export async function fetchTasks() {
   return supabase
     .from("tasks")
@@ -68,16 +75,26 @@ export async function createTask(userId: string, input: CreateTaskInput) {
 }
 
 export async function toggleTaskDone(id: string, isDone: boolean) {
-  const payload = {
-    is_done: isDone,
-    done_at: isDone ? new Date().toISOString() : null,
-  };
+  const now = new Date();
+
+  const { error: rpcError } = await supabase.rpc("toggle_task_done", {
+    p_task_id: id,
+    p_next_done: isDone,
+    p_completion_date: getLocalDateString(now),
+    p_completed_at: now.toISOString(),
+  });
+
+  if (rpcError) {
+    return {
+      data: null,
+      error: rpcError,
+    };
+  }
 
   return supabase
     .from("tasks")
-    .update(payload)
-    .eq("id", id)
     .select("id, is_done, done_at")
+    .eq("id", id)
     .single();
 }
 

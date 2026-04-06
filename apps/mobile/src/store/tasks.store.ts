@@ -72,11 +72,19 @@ export const useTasksStore = create<TasksState>((set) => ({
   },
 
   toggleTaskDone: async (id, isDone) => {
+    set({ error: null });
+
     const { data, error } = await toggleTaskDoneService(id, isDone);
 
     if (error) {
       set({ error: error.message });
       return { error: error.message };
+    }
+
+    if (!data) {
+      const fallbackMessage = "No se pudo actualizar la tarea.";
+      set({ error: fallbackMessage });
+      return { error: fallbackMessage };
     }
 
     set((state) => ({
