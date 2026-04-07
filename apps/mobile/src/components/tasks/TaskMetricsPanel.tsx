@@ -1,52 +1,92 @@
-import { View, Text, StyleSheet } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  type ImageSourcePropType,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import { theme } from "../../lib/theme";
-import type {
-  TrackingSummary,
-  TrackingDayStatus,
-} from "../../services/progress.service";
+import type { TrackingSummary } from "../../services/progress.service";
+import { TrackingCalendarCard } from "../features/TrackingCalendarCard";
+import { mapSummaryCalendarDaysToTrackingCalendarDayMap } from "../../features/home/utils/mapSummaryCalenderDays";
 
 type TasksMetricsPanelProps = {
   summary: TrackingSummary | null;
   loading?: boolean;
+  albeImageSource?: ImageSourcePropType;
 };
 
-const WEEKDAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
+function getMonthAnchorDateFromSummary(summary: TrackingSummary | null) {
+  const todayDate = summary?.calendarDays.find((day) => day.isToday)?.date;
 
-function getDayBubbleStyle(status: TrackingDayStatus) {
-  switch (status) {
-    case "progress":
-      return {
-        backgroundColor: "#EEE7FF",
-        borderColor: "#DDD0FF",
-        textColor: "#6B56C9",
-      };
-    case "goal":
-      return {
-        backgroundColor: "#CDB8FF",
-        borderColor: "#B79AF7",
-        textColor: "#FFFFFF",
-      };
-    case "ninja":
-      return {
-        backgroundColor: "#7B5CFF",
-        borderColor: "#7B5CFF",
-        textColor: "#FFFFFF",
-      };
-    case "none":
-    default:
-      return {
-        backgroundColor: "#FBF8FF",
-        borderColor: "#EEE7FA",
-        textColor: "#9A90B3",
-      };
+  if (todayDate) {
+    const [year, month] = todayDate.split("-").map(Number);
+
+    if (!Number.isNaN(year) && !Number.isNaN(month)) {
+      return new Date(year, month - 1, 1, 12, 0, 0, 0);
+    }
   }
+
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0);
+}
+
+function getHeroMessage(summary: TrackingSummary) {
+  if (summary.completionRate >= 80) {
+    return "Muy buena constancia. Este mes estás cerrando lo que te propones.";
+  }
+
+  if (summary.completionRate >= 60) {
+    return "Vas construyendo un ritmo sólido. Lo importante es que no se corte.";
+  }
+
+  if (summary.completedThisMonth > 0) {
+    return "Ya hay movimiento este mes. Seguimos sumando paso a paso.";
+  }
+
+  return "Todavía estamos arrancando, pero una sola tarea ya cambia el día.";
+}
+
+function getFooterMessage(summary: TrackingSummary) {
+  if (summary.completedThisMonth === 0) {
+    return "Aún no has cerrado tareas este mes, pero todo empieza con la primera.";
+  }
+
+  if (summary.completedThisMonth === 1) {
+    return "Ya has cerrado 1 tarea este mes. Buen comienzo.";
+  }
+
+  return `Ya has cerrado ${summary.completedThisMonth} tareas este mes. Se está notando el avance.`;
 }
 
 export function TasksMetricsPanel({
   summary,
   loading = false,
+  albeImageSource,
 }: TasksMetricsPanelProps) {
+  const trackingCalendarDays = useMemo(() => {
+    if (!summary) {
+      return {};
+    }
+
+    return mapSummaryCalendarDaysToTrackingCalendarDayMap(summary.calendarDays);
+  }, [summary]);
+
+  const initialMonthAnchorDate = useMemo(() => {
+    return getMonthAnchorDateFromSummary(summary);
+  }, [summary]);
+
+  const [monthAnchorDate, setMonthAnchorDate] = useState<Date>(
+    initialMonthAnchorDate
+  );
+
+  useEffect(() => {
+    setMonthAnchorDate(initialMonthAnchorDate);
+  }, [initialMonthAnchorDate]);
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -73,123 +113,116 @@ export function TasksMetricsPanel({
     );
   }
 
+  const hasStreak = summary.currentStreak > 0;
+
   return (
     <View style={styles.container}>
       <View style={styles.heroCard}>
-        <View style={styles.heroTextBlock}>
-          <Text style={styles.heroTitle}>Seguimiento</Text>
-          <Text style={styles.heroSubtitle}>
-            Mira tu constancia con más perspectiva. Aquí verás qué días has
-            cumplido y cómo va tu ritmo este mes.
-          </Text>
-        </View>
-
-        <View style={styles.heroBadge}>
-          <Ionicons name="flame-outline" size={16} color="#7B5CFF" />
-          <Text style={styles.heroBadgeText}>
-            {summary.currentStreak} día{summary.currentStreak === 1 ? "" : "s"}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.calendarCard}>
-        <View style={styles.calendarHeader}>
-          <Text style={styles.calendarTitle}>{summary.monthLabel}</Text>
-        </View>
-
-        <View style={styles.weekdaysRow}>
-          {WEEKDAY_LABELS.map((label) => (
-            <Text key={label} style={styles.weekdayLabel}>
-              {label}
+        <View style={styles.heroRow}>
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTitle}>Seguimiento</Text>
+            <Text style={styles.heroSubtitle}>
+              Mira tu constancia con más perspectiva y comprueba cómo va tu mes.
             </Text>
-          ))}
-        </View>
 
-        <View style={styles.calendarGrid}>
-          {summary.calendarDays.map((day) => {
-            const bubble = getDayBubbleStyle(day.status);
+            <Text style={styles.heroMessage}>{getHeroMessage(summary)}</Text>
 
-            return (
-              <View key={day.date} style={styles.dayCell}>
-                <View
+            <View style={styles.heroBadgesRow}>
+              <View style={styles.heroBadge}>
+                <Ionicons
+                  name={hasStreak ? "flame" : "flame-outline"}
+                  size={22}
+                  color={hasStreak ? "#FF5A4F" : "#9F95BB"}
+                />
+                <Text
                   style={[
-                    styles.dayBubble,
-                    {
-                      backgroundColor: bubble.backgroundColor,
-                      borderColor: bubble.borderColor,
-                    },
-                    day.isToday && styles.todayBubble,
+                    styles.heroBadgeText,
+                    hasStreak && styles.heroBadgeTextActive,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.dayNumber,
-                      { color: bubble.textColor },
-                      day.isToday && styles.todayNumber,
-                    ]}
-                  >
-                    {day.dayNumber}
-                  </Text>
-                </View>
+                  {summary.currentStreak} día
+                  {summary.currentStreak === 1 ? "" : "s"} de racha
+                </Text>
               </View>
-            );
-          })}
-        </View>
 
-        <View style={styles.legendWrap}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: "#FBF8FF", borderColor: "#EEE7FA" }]} />
-            <Text style={styles.legendText}>Sin avance</Text>
+              <View style={styles.heroSuccessBadge}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={18}
+                  color="#5F8B1C"
+                />
+                <Text style={styles.heroSuccessBadgeText}>
+                  {summary.completionRate}% cumplido
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: "#EEE7FF", borderColor: "#DDD0FF" }]} />
-            <Text style={styles.legendText}>Con avance</Text>
-          </View>
-
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: "#CDB8FF", borderColor: "#B79AF7" }]} />
-            <Text style={styles.legendText}>Objetivo</Text>
-          </View>
-
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: "#7B5CFF", borderColor: "#7B5CFF" }]} />
-            <Text style={styles.legendText}>Modo ninja</Text>
-          </View>
+          {albeImageSource ? (
+            <Image
+              source={albeImageSource}
+              resizeMode="contain"
+              style={styles.heroImage}
+            />
+          ) : null}
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Resumen de compromiso</Text>
+      <TrackingCalendarCard
+        monthAnchorDate={monthAnchorDate}
+        onChangeMonth={setMonthAnchorDate}
+        dayStatusByDate={trackingCalendarDays}
+      />
+
+      <Text style={styles.sectionTitle}>Resumen de constancia</Text>
 
       <View style={styles.grid}>
+        <View style={[styles.metricCard, styles.metricCardHighlight]}>
+          <View style={styles.metricIconWrapHighlight}>
+            <Ionicons
+              name="checkmark-done-outline"
+              size={18}
+              color="#5F8B1C"
+            />
+          </View>
+          <Text style={[styles.metricValue, styles.metricValueHighlight]}>
+            {summary.completionRate}%
+          </Text>
+          <Text style={styles.metricLabel}>Cumplimiento</Text>
+        </View>
+
         <View style={styles.metricCard}>
+          <View style={styles.metricIconWrap}>
+            <Ionicons name="flame-outline" size={18} color="#7B5CFF" />
+          </View>
           <Text style={styles.metricValue}>{summary.currentStreak}</Text>
           <Text style={styles.metricLabel}>Racha actual</Text>
         </View>
 
         <View style={styles.metricCard}>
+          <View style={styles.metricIconWrap}>
+            <Ionicons name="trophy-outline" size={18} color="#7B5CFF" />
+          </View>
           <Text style={styles.metricValue}>{summary.bestStreak}</Text>
           <Text style={styles.metricLabel}>Mejor racha</Text>
         </View>
 
         <View style={styles.metricCard}>
+          <View style={styles.metricIconWrap}>
+            <Ionicons
+              name="calendar-clear-outline"
+              size={18}
+              color="#7B5CFF"
+            />
+          </View>
           <Text style={styles.metricValue}>{summary.activeDaysThisMonth}</Text>
           <Text style={styles.metricLabel}>Días activos</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>{summary.completionRate}%</Text>
-          <Text style={styles.metricLabel}>Cumplimiento</Text>
         </View>
       </View>
 
       <View style={styles.footerNote}>
-        <Ionicons name="sparkles-outline" size={16} color="#8D76E8" />
-        <Text style={styles.footerNoteText}>
-          Este mes llevas {summary.completedThisMonth} completado
-          {summary.completedThisMonth === 1 ? "" : "s"} registrado
-          {summary.completedThisMonth === 1 ? "" : "s"}.
-        </Text>
+        <Ionicons name="sparkles" size={18} color="#8D76E8" />
+        <Text style={styles.footerNoteText}>{getFooterMessage(summary)}</Text>
       </View>
     </View>
   );
@@ -201,17 +234,29 @@ const styles = StyleSheet.create({
   },
 
   heroCard: {
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.84)",
     borderRadius: 28,
     paddingHorizontal: 18,
-    paddingVertical: 20,
+    paddingVertical: 18,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "rgba(123,92,255,0.10)",
   },
 
-  heroTextBlock: {
-    marginBottom: 14,
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  heroContent: {
+    flex: 1,
+  },
+
+  heroImage: {
+    width: 110,
+    height: 110,
   },
 
   heroTitle: {
@@ -223,17 +268,31 @@ const styles = StyleSheet.create({
 
   heroSubtitle: {
     fontSize: 15,
-    lineHeight: 24,
+    lineHeight: 23,
     color: "#625C7A",
     fontFamily: "Poppins-Regular",
+    marginBottom: 10,
+  },
+
+  heroMessage: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#4F4870",
+    fontFamily: "Poppins-SemiBold",
+    marginBottom: 14,
+  },
+
+  heroBadgesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
   },
 
   heroBadge: {
-    alignSelf: "flex-start",
-    minHeight: 40,
+    minHeight: 42,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: "#F4EEFF",
+    backgroundColor: "#F6F1FF",
     borderWidth: 1,
     borderColor: "#E5DBFF",
     flexDirection: "row",
@@ -243,103 +302,30 @@ const styles = StyleSheet.create({
 
   heroBadgeText: {
     fontSize: 14,
-    color: "#6D58C3",
+    color: "#756C91",
     fontFamily: "Poppins-SemiBold",
   },
 
-  calendarCard: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 28,
-    padding: 16,
+  heroBadgeTextActive: {
+    color: "#5B496E",
+  },
+
+  heroSuccessBadge: {
+    minHeight: 42,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "#F2F8E6",
     borderWidth: 1,
-    borderColor: "rgba(123,92,255,0.10)",
-    marginBottom: 18,
-  },
-
-  calendarHeader: {
-    marginBottom: 14,
-  },
-
-  calendarTitle: {
-    fontSize: 20,
-    color: theme.colors.text,
-    fontFamily: "Poppins-Bold",
-  },
-
-  weekdaysRow: {
+    borderColor: "#DCECB6",
     flexDirection: "row",
-    marginBottom: 12,
-  },
-
-  weekdayLabel: {
-    width: "14.285%",
-    textAlign: "center",
-    fontSize: 12,
-    color: "#8B83A5",
-    fontFamily: "Poppins-SemiBold",
-  },
-
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 14,
-  },
-
-  dayCell: {
-    width: "14.285%",
     alignItems: "center",
-    marginBottom: 10,
+    gap: 8,
   },
 
-  dayBubble: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  todayBubble: {
-    shadowColor: "#A48BE4",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-
-  dayNumber: {
+  heroSuccessBadgeText: {
     fontSize: 14,
+    color: "#567C1B",
     fontFamily: "Poppins-SemiBold",
-  },
-
-  todayNumber: {
-    fontFamily: "Poppins-Bold",
-  },
-
-  legendWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-
-  legendText: {
-    fontSize: 12,
-    color: "#6B6482",
-    fontFamily: "Poppins-Medium",
   },
 
   sectionTitle: {
@@ -353,11 +339,12 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between",
+    rowGap: 12,
   },
 
   metricCard: {
-    width: "47%",
+    width: "48%",
     backgroundColor: "rgba(255,255,255,0.88)",
     borderRadius: 22,
     paddingVertical: 18,
@@ -367,11 +354,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  metricCardHighlight: {
+    backgroundColor: "#FBFDF4",
+    borderColor: "#DCECB6",
+  },
+
+  metricIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F3EEFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+
+  metricIconWrapHighlight: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#EEF7DD",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+
   metricValue: {
     fontSize: 28,
     color: theme.colors.primary,
     fontFamily: "Poppins-Bold",
     marginBottom: 4,
+  },
+
+  metricValueHighlight: {
+    color: "#567C1B",
   },
 
   metricLabel: {
@@ -383,7 +399,7 @@ const styles = StyleSheet.create({
 
   footerNote: {
     marginTop: 16,
-    minHeight: 46,
+    minHeight: 50,
     borderRadius: 18,
     backgroundColor: "#F6F1FF",
     borderWidth: 1,

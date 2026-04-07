@@ -9,6 +9,8 @@ export type TaskCompletion = {
   created_at: string;
 };
 
+export type CompletedTaskIdRow = Pick<TaskCompletion, "task_id">;
+
 function getLocalDateString(date = new Date()) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -21,10 +23,15 @@ export function getTodayLocalDateString() {
 }
 
 export async function fetchCompletedTaskIdsForDate(date: string) {
-  return supabase
+  const { data, error } = await supabase
     .from("task_completions")
     .select("task_id")
     .eq("completion_date", date);
+
+  return {
+    data: (data ?? []) as CompletedTaskIdRow[],
+    error,
+  };
 }
 
 export async function fetchTodayCompletedTaskIds() {
