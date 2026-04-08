@@ -34,22 +34,6 @@ function getMonthAnchorDateFromSummary(summary: TrackingSummary | null) {
   return new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0);
 }
 
-function getHeroMessage(summary: TrackingSummary) {
-  if (summary.completionRate >= 80) {
-    return "Muy buena constancia. Este mes estás cerrando lo que te propones.";
-  }
-
-  if (summary.completionRate >= 60) {
-    return "Vas construyendo un ritmo sólido. Lo importante es que no se corte.";
-  }
-
-  if (summary.completedThisMonth > 0) {
-    return "Ya hay movimiento este mes. Seguimos sumando paso a paso.";
-  }
-
-  return "Todavía estamos arrancando, pero una sola tarea ya cambia el día.";
-}
-
 function getFooterMessage(summary: TrackingSummary) {
   if (summary.completedThisMonth === 0) {
     return "Aún no has cerrado tareas este mes, pero todo empieza con la primera.";
@@ -118,53 +102,51 @@ export function TasksMetricsPanel({
   return (
     <View style={styles.container}>
       <View style={styles.heroCard}>
-        <View style={styles.heroRow}>
+        <View style={styles.heroTopRow}>
           <View style={styles.heroContent}>
             <Text style={styles.heroTitle}>Seguimiento</Text>
+
             <Text style={styles.heroSubtitle}>
-              Mira tu constancia con más perspectiva y comprueba cómo va tu mes.
+              Tu constancia y el avance de este mes.
             </Text>
-
-            <Text style={styles.heroMessage}>{getHeroMessage(summary)}</Text>
-
-            <View style={styles.heroBadgesRow}>
-              <View style={styles.heroBadge}>
-                <Ionicons
-                  name={hasStreak ? "flame" : "flame-outline"}
-                  size={22}
-                  color={hasStreak ? "#FF5A4F" : "#9F95BB"}
-                />
-                <Text
-                  style={[
-                    styles.heroBadgeText,
-                    hasStreak && styles.heroBadgeTextActive,
-                  ]}
-                >
-                  {summary.currentStreak} día
-                  {summary.currentStreak === 1 ? "" : "s"} de racha
-                </Text>
-              </View>
-
-              <View style={styles.heroSuccessBadge}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={18}
-                  color="#5F8B1C"
-                />
-                <Text style={styles.heroSuccessBadgeText}>
-                  {summary.completionRate}% cumplido
-                </Text>
-              </View>
-            </View>
           </View>
 
           {albeImageSource ? (
-            <Image
-              source={albeImageSource}
-              resizeMode="contain"
-              style={styles.heroImage}
-            />
+            <View style={styles.heroImageWrap}>
+              <View style={styles.heroImageBlob} />
+              <Image
+                source={albeImageSource}
+                resizeMode="contain"
+                style={styles.heroImage}
+              />
+            </View>
           ) : null}
+        </View>
+
+        <View style={styles.heroBadgesRow}>
+          <View style={styles.heroBadge}>
+            <Ionicons
+              name={hasStreak ? "flame" : "flame-outline"}
+              size={22}
+              color={hasStreak ? "#FF5A4F" : "#9F95BB"}
+            />
+            <Text
+              style={[
+                styles.heroBadgeText,
+                hasStreak && styles.heroBadgeTextActive,
+              ]}
+            >
+              {summary.currentStreak} día
+              {summary.currentStreak === 1 ? "" : "s"} de racha
+            </Text>
+          </View>
+
+          <View style={styles.heroSuccessBadge}>
+            <Ionicons name="checkmark-circle" size={18} color="#5F8B1C" />
+            <Text style={styles.heroSuccessBadgeText}>
+              {summary.completionRate}% cumplido
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -234,33 +216,31 @@ const styles = StyleSheet.create({
   },
 
   heroCard: {
-    backgroundColor: "rgba(255,255,255,0.84)",
+    backgroundColor: "#F6F1FF",
     borderRadius: 28,
     paddingHorizontal: 18,
-    paddingVertical: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(123,92,255,0.10)",
+    borderColor: "#E7DBFF",
   },
 
-  heroRow: {
+  heroTopRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 12,
+    marginBottom: 14,
   },
 
   heroContent: {
     flex: 1,
-  },
-
-  heroImage: {
-    width: 110,
-    height: 110,
+    paddingTop: 4,
   },
 
   heroTitle: {
-    fontSize: 26,
+    fontSize: 28,
     color: theme.colors.text,
     fontFamily: "Poppins-Bold",
     marginBottom: 6,
@@ -268,18 +248,10 @@ const styles = StyleSheet.create({
 
   heroSubtitle: {
     fontSize: 15,
-    lineHeight: 23,
-    color: "#625C7A",
-    fontFamily: "Poppins-Regular",
-    marginBottom: 10,
-  },
-
-  heroMessage: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#4F4870",
-    fontFamily: "Poppins-SemiBold",
-    marginBottom: 14,
+    lineHeight: 22,
+    color: "#6B6384",
+    fontFamily: "Poppins-Medium",
+    maxWidth: 240,
   },
 
   heroBadgesRow: {
@@ -292,9 +264,9 @@ const styles = StyleSheet.create({
     minHeight: 42,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: "#F6F1FF",
+    backgroundColor: "#F1E9FF",
     borderWidth: 1,
-    borderColor: "#E5DBFF",
+    borderColor: "#DDCFFF",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -314,9 +286,9 @@ const styles = StyleSheet.create({
     minHeight: 42,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: "#F2F8E6",
+    backgroundColor: "#EEF7DD",
     borderWidth: 1,
-    borderColor: "#DCECB6",
+    borderColor: "#D4E7A9",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -326,6 +298,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#567C1B",
     fontFamily: "Poppins-SemiBold",
+  },
+
+  heroImageWrap: {
+    width: 108,
+    height: 108,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginTop: -2,
+  },
+
+  heroImageBlob: {
+    position: "absolute",
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "#EDE3FF",
+    borderWidth: 1,
+    borderColor: "#DDCFFF",
+  },
+
+  heroImage: {
+    width: 132,
+    height: 132,
   },
 
   sectionTitle: {

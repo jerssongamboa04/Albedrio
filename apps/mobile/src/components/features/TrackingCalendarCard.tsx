@@ -7,33 +7,20 @@ import {
   getCurrentMonthAnchorDate,
   WEEKDAY_LABELS,
 } from "../../lib/trackingCalendar.config";
-
-type TrackingCalendarDayValue =
-  | string
-  | {
-      status?: string | null;
-    }
-  | null
-  | undefined;
-
-type DayStatusMap = Record<string, TrackingCalendarDayValue>;
+import type { TrackingCalendarDayMap } from "../../features/home/types/trackingCalendar.types";
 
 type TrackingCalendarCardProps = {
   monthAnchorDate: Date;
   onChangeMonth: (nextMonth: Date) => void;
-  dayStatusByDate: DayStatusMap;
+  dayStatusByDate: TrackingCalendarDayMap;
 };
 
-function normalizeStatus(rawDay: TrackingCalendarDayValue) {
-  const rawStatus = typeof rawDay === "string" ? rawDay : rawDay?.status;
-  const status = String(rawStatus ?? "").toLowerCase();
+function normalizeStatus(
+  rawDay: TrackingCalendarDayMap[string] | undefined
+) {
+  const status = rawDay?.status;
 
-  if (
-    status === "completed" ||
-    status === "done" ||
-    status === "success" ||
-    status === "complete"
-  ) {
+  if (status === "goal" || status === "ninja") {
     return "completed";
   }
 

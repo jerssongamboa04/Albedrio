@@ -1,4 +1,3 @@
-// src/features/home/utils/trackingCalendar.ts
 
 export const WEEKDAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"] as const;
 

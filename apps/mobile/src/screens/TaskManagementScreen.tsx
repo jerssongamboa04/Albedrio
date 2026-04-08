@@ -235,6 +235,8 @@ export function TaskManagementScreen({ navigation }: Props) {
               <TasksMetricsPanel
                 summary={trackingSummary}
                 loading={trackingLoading}
+                albeImageSource={require("../../assets/characters/AlbeMetrics.png")}
+
               />
             ) : null}
           </View>
