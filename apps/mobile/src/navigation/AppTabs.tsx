@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { AppTabsParamList } from "./types";
 import { HomeScreen } from "../screens/HomeScreen";
 import { TaskManagementScreen } from "../screens/TaskManagementScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { theme } from "../lib/theme";
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
@@ -28,7 +29,7 @@ export function AppTabs() {
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: "#8A84A3",
-        tabBarIcon: ({ color, size, focused }) => {
+        tabBarIcon: ({ color, focused }) => {
           if (route.name === "Home") {
             return (
               <Ionicons
@@ -39,10 +40,20 @@ export function AppTabs() {
             );
           }
 
+          if (route.name === "TaskManagementScreen") {
+            return (
+              <Ionicons
+                name={focused ? "clipboard" : "clipboard-outline"}
+                size={22}
+                color={color}
+              />
+            );
+          }
+
           return (
             <Ionicons
-              name={focused ? "clipboard" : "clipboard-outline"}
-              size={22}
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={24}
               color={color}
             />
           );
@@ -59,6 +70,12 @@ export function AppTabs() {
         name="TaskManagementScreen"
         component={TaskManagementScreen}
         options={{ title: "Tareas" }}
+      />
+
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: "Perfil" }}
       />
     </Tab.Navigator>
   );

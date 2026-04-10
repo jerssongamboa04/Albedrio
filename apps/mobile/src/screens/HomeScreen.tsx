@@ -222,7 +222,7 @@ export function HomeScreen({ navigation }: Props) {
                 <Text style={styles.todayFocusTitle}>Tu foco del día</Text>
 
                 <Text style={styles.todayFocusSubtitle}>
-                  Una vista puntual de las tareas que realmente tocan hoy.
+                  Lo que hagas hoy también cuenta. Vamos a empezar por aquí.
                 </Text>
               </View>
 

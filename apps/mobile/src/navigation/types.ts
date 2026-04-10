@@ -1,8 +1,8 @@
 export type AppTabsParamList = {
   Home: undefined;
   TaskManagementScreen: undefined;
+  Profile: undefined;
 };
-
 export type AppStackParamList = {
   MainTabs: undefined;
   TaskStartScreen: {
