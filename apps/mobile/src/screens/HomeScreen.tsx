@@ -28,8 +28,13 @@ import {
   type TrackingSummary,
 } from "../services/progress.service";
 import { fetchTodayCompletedTaskIds } from "../services/taskCompletions.service";
+import { supabase } from "../lib/supabase";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
+
+type HomeProfileRecord = {
+  display_name: string | null;
+};
 
 export function AppStack() {
   return (
@@ -77,6 +82,9 @@ export function HomeScreen({ navigation }: Props) {
   );
   const [trackingSummary, setTrackingSummary] =
     useState<TrackingSummary | null>(null);
+  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(
+    null
+  );
 
   const loadHomeSnapshotSources = useCallback(async () => {
     const [
@@ -100,11 +108,39 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, []);
 
+  const loadProfileDisplayName = useCallback(async () => {
+    if (!user?.id) {
+      setProfileDisplayName(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      const profileData = data as HomeProfileRecord | null;
+      const nextDisplayName = profileData?.display_name?.trim() ?? null;
+
+      setProfileDisplayName(nextDisplayName);
+    } catch (error) {
+      console.error("Error al cargar el nombre de perfil en Home:", error);
+      setProfileDisplayName(null);
+    }
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       loadTasks();
       loadHomeSnapshotSources();
-    }, [loadTasks, loadHomeSnapshotSources])
+      loadProfileDisplayName();
+    }, [loadTasks, loadHomeSnapshotSources, loadProfileDisplayName])
   );
 
   const homeSnapshot = useMemo(() => {
@@ -123,7 +159,8 @@ export function HomeScreen({ navigation }: Props) {
     currentStreak,
   } = homeSnapshot;
 
-  const displayName = getDisplayName(user?.email);
+  const fallbackDisplayName = getDisplayName(user?.email);
+  const displayName = profileDisplayName || fallbackDisplayName;
 
   const mascotState = useMemo(
     () =>

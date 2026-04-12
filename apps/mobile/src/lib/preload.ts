@@ -7,8 +7,17 @@ export async function preloadAppResources() {
     Asset.loadAsync([
       require("../../assets/brand/logo.png"),
       require("../../assets/brand/mascot.png"),
-      require("../../assets/brand/google.png"),
       require("../../assets/brand/AlbeNinja.png"),
+      require("../../assets/characters/active.png"),
+      require("../../assets/characters/albe-create.png"),
+      require("../../assets/characters/AlbeMetrics.png"),
+      require("../../assets/characters/AlbeNinja.png"),
+      require("../../assets/characters/idle.png"),
+
+
+
+
+
     ]),
     Font.loadAsync({
       "Poppins-Regular": require("../../assets/fonts/Poppins-Regular.ttf"),

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,18 +10,32 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+
 import { theme } from "../lib/theme";
 import { supabase } from "../lib/supabase";
 
+type ProfileRecord = {
+  id: string;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export function ProfileScreen() {
   const [email, setEmail] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadUser() {
+    async function loadUserAndProfile() {
       try {
         const { data, error } = await supabase.auth.getUser();
 
@@ -32,9 +47,32 @@ export function ProfileScreen() {
           return;
         }
 
-        setEmail(data.user?.email ?? null);
+        const authUser = data.user;
+
+        setEmail(authUser?.email ?? null);
+
+        if (!authUser) {
+          setProfile(null);
+          return;
+        }
+
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, display_name, bio, avatar_url, created_at, updated_at")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfile((profileData as ProfileRecord | null) ?? null);
       } catch (error) {
-        console.error("Error al cargar el usuario en perfil:", error);
+        console.error("Error al cargar el perfil:", error);
       } finally {
         if (isMounted) {
           setIsLoadingUser(false);
@@ -42,14 +80,14 @@ export function ProfileScreen() {
       }
     }
 
-    loadUser();
+    loadUserAndProfile();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  const displayName = useMemo(() => {
+  const fallbackName = useMemo(() => {
     if (!email) {
       return "Tu espacio Albendrio";
     }
@@ -65,6 +103,26 @@ export function ProfileScreen() {
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }, [email]);
 
+  const displayName = useMemo(() => {
+    const profileName = profile?.display_name?.trim();
+
+    if (profileName) {
+      return profileName;
+    }
+
+    return fallbackName;
+  }, [profile, fallbackName]);
+
+  const profileBio = useMemo(() => {
+    const bio = profile?.bio?.trim();
+
+    if (bio) {
+      return bio;
+    }
+
+    return "Tu espacio personal dentro de Albendrio. Aquí vive tu cuenta.";
+  }, [profile]);
+
   const userInitial = useMemo(() => {
     if (!displayName || displayName === "Tu espacio Albendrio") {
       return "A";
@@ -74,6 +132,7 @@ export function ProfileScreen() {
   }, [displayName]);
 
   const emailText = isLoadingUser ? "Cargando cuenta..." : email ?? "No disponible";
+  const avatarUri = localAvatarUri ?? profile?.avatar_url ?? null;
 
   function confirmSignOut() {
     Alert.alert(
@@ -114,6 +173,181 @@ export function ProfileScreen() {
     }
   }
 
+  function getFileExtension(
+    image: ImagePicker.ImagePickerAsset
+  ): "jpg" | "jpeg" | "png" | "webp" {
+    const uriExtension = image.uri.split(".").pop()?.toLowerCase();
+
+    if (
+      uriExtension === "jpg" ||
+      uriExtension === "jpeg" ||
+      uriExtension === "png" ||
+      uriExtension === "webp"
+    ) {
+      return uriExtension;
+    }
+
+    const mimeType = image.mimeType?.toLowerCase();
+
+    if (mimeType?.includes("png")) {
+      return "png";
+    }
+
+    if (mimeType?.includes("webp")) {
+      return "webp";
+    }
+
+    if (mimeType?.includes("jpeg") || mimeType?.includes("jpg")) {
+      return "jpg";
+    }
+
+    return "jpg";
+  }
+
+  function getContentType(
+    extension: "jpg" | "jpeg" | "png" | "webp"
+  ): string {
+    if (extension === "png") {
+      return "image/png";
+    }
+
+    if (extension === "webp") {
+      return "image/webp";
+    }
+
+    return "image/jpeg";
+  }
+
+  async function uploadAvatar(image: ImagePicker.ImagePickerAsset) {
+    const previousAvatarUri = localAvatarUri ?? profile?.avatar_url ?? null;
+
+    try {
+      setIsUploadingAvatar(true);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (!user) {
+        throw new Error("No hay usuario autenticado");
+      }
+
+      const arrayBuffer = await fetch(image.uri).then((res) => res.arrayBuffer());
+
+      const fileExtension = getFileExtension(image);
+      const contentType = image.mimeType ?? getContentType(fileExtension);
+
+      // Ruta fija para que cada usuario tenga un único avatar en Storage.
+      const filePath = `${user.id}/avatar`;
+
+      const { error: updateFileError } = await supabase.storage
+        .from("avatars")
+        .update(filePath, arrayBuffer, {
+          contentType,
+          cacheControl: "60",
+          upsert: true,
+        });
+
+      if (updateFileError) {
+        const { error: uploadFileError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, arrayBuffer, {
+            contentType,
+            cacheControl: "60",
+            upsert: true,
+          });
+
+        if (uploadFileError) {
+          throw uploadFileError;
+        }
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const publicUrlWithVersion = `${publicUrlData.publicUrl}?v=${Date.now()}`;
+
+      const { data: updatedProfile, error: updateProfileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            avatar_url: publicUrlWithVersion,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select("id, display_name, bio, avatar_url, created_at, updated_at")
+        .single();
+
+      if (updateProfileError) {
+        throw updateProfileError;
+      }
+
+      setProfile(updatedProfile as ProfileRecord);
+      setLocalAvatarUri(publicUrlWithVersion);
+
+      Alert.alert("Foto actualizada", "Tu imagen de perfil ya se ha actualizado.");
+    } catch (error) {
+      console.error("Error al subir el avatar:", error);
+      setLocalAvatarUri(previousAvatarUri);
+
+      Alert.alert(
+        "No se pudo actualizar la foto",
+        "Ha ocurrido un problema al intentar actualizar la imagen."
+      );
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  }
+
+  async function handlePickAvatar() {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permiso necesario",
+          "Albendrio necesita acceso a tus fotos para que puedas elegir una imagen de perfil."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const selectedAsset = result.assets?.[0];
+
+      if (!selectedAsset?.uri) {
+        return;
+      }
+
+      setLocalAvatarUri(selectedAsset.uri);
+      await uploadAvatar(selectedAsset);
+    } catch (error) {
+      console.error("Error al seleccionar imagen:", error);
+      Alert.alert(
+        "No se pudo abrir la galería",
+        "Ha ocurrido un problema al intentar seleccionar la imagen."
+      );
+    }
+  }
+
   return (
     <View style={styles.root}>
       <View style={styles.bubbleOne} />
@@ -130,20 +364,49 @@ export function ProfileScreen() {
             <View style={styles.heroGlow} />
 
             <View style={styles.heroTopRow}>
-              <View style={styles.avatarWrap}>
+              <Pressable
+                style={styles.avatarWrap}
+                onPress={handlePickAvatar}
+                accessibilityRole="button"
+                accessibilityLabel="Cambiar imagen de perfil"
+                disabled={isUploadingAvatar}
+              >
                 <View style={styles.avatarOuter}>
                   <View style={styles.avatarInner}>
-                    <Text style={styles.avatarLetter}>{userInitial}</Text>
+                    {avatarUri ? (
+                      <Image
+                        source={{ uri: avatarUri }}
+                        style={styles.avatarImage}
+                      />
+                    ) : (
+                      <Text style={styles.avatarLetter}>{userInitial}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.avatarBadge}>
+                    <Ionicons
+                      name={
+                        isUploadingAvatar
+                          ? "cloud-upload-outline"
+                          : "camera-outline"
+                      }
+                      size={16}
+                      color="#FFFFFF"
+                    />
                   </View>
                 </View>
-              </View>
+
+                <Text style={styles.avatarHint}>
+                  {isUploadingAvatar
+                    ? "Subiendo imagen..."
+                    : "Toca la imagen para cambiar tu foto"}
+                </Text>
+              </Pressable>
 
               <View style={styles.heroTextBlock}>
                 <Text style={styles.overline}>Perfil</Text>
                 <Text style={styles.heroTitle}>{displayName}</Text>
-                <Text style={styles.heroSubtitle}>
-                  Tu espacio personal dentro de Albendrio. Aquí vive tu cuenta.
-                </Text>
+                <Text style={styles.heroSubtitle}>{profileBio}</Text>
               </View>
             </View>
 
@@ -215,8 +478,8 @@ export function ProfileScreen() {
             <View style={styles.messageBox}>
               <Text style={styles.messageText}>
                 Albendrio no busca que lo hagas todo de golpe. Busca ayudarte a
-                empezar mejor, bajar la fricción y darte una sensación más real de
-                claridad y avance.
+                empezar mejor, bajar la fricción y darte una sensación más real
+                de claridad y avance.
               </Text>
             </View>
 
@@ -236,23 +499,6 @@ export function ProfileScreen() {
           </View>
 
           <View style={styles.logoutCard}>
-            <View style={styles.logoutHeader}>
-              <View style={styles.logoutIconBox}>
-                <Ionicons
-                  name="log-out-outline"
-                  size={20}
-                  color="#B5475C"
-                />
-              </View>
-
-              <View style={styles.sectionHeaderText}>
-                <Text style={styles.logoutTitle}>Cerrar sesión</Text>
-                <Text style={styles.logoutSubtitle}>
-                  Sal de tu cuenta de forma segura cuando lo necesites
-                </Text>
-              </View>
-            </View>
-
             <Pressable
               style={({ pressed }) => [
                 styles.logoutButton,
@@ -364,31 +610,59 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarOuter: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: 105,
+    height: 105,
+    borderRadius: 52,
     backgroundColor: "rgba(123,92,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
   },
   avatarInner: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 88,
+    height: 88,
+    borderRadius: 42,
     backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
   avatarLetter: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
   },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 42,
+  },
+  avatarBadge: {
+    position: "absolute",
+    right: 4,
+    bottom: 4,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.colors.primaryDark,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: theme.colors.card,
+  },
+  avatarHint: {
+    marginTop: 8,
+    width: 110,
+    textAlign: "center",
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: "Poppins-Medium",
+    color: theme.colors.muted,
+  },
   heroTextBlock: {
     flex: 1,
   },
   overline: {
-    fontSize: 12,
+    fontSize: 24,
     fontFamily: "Poppins-SemiBold",
     color: theme.colors.primaryDark,
     marginBottom: 4,
@@ -396,7 +670,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 18,
     lineHeight: 30,
     fontFamily: "Poppins-Bold",
     color: theme.colors.text,
@@ -548,30 +822,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(181,71,92,0.14)",
     gap: 16,
-  },
-  logoutHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  logoutIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(181,71,92,0.10)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoutTitle: {
-    fontSize: 17,
-    fontFamily: "Poppins-Bold",
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  logoutSubtitle: {
-    fontSize: 13,
-    fontFamily: "Poppins-Regular",
-    color: theme.colors.muted,
   },
   logoutButton: {
     minHeight: 54,
