@@ -2,10 +2,13 @@ import { create } from "zustand";
 import {
   fetchTasks,
   createTask as createTaskService,
+  updateTask as updateTaskService,
   toggleTaskDone as toggleTaskDoneService,
   deleteTask as deleteTaskService,
   type Task,
   type CreateTaskInput,
+  type UpdateTaskInput,
+  type TaskType,
 } from "../services/tasks.service";
 
 type TasksState = {
@@ -15,8 +18,19 @@ type TasksState = {
   error: string | null;
 
   loadTasks: () => Promise<void>;
-  addTask: (userId: string, input: CreateTaskInput) => Promise<{ error: string | null }>;
-  toggleTaskDone: (id: string, isDone: boolean) => Promise<{ error: string | null }>;
+  addTask: (
+    userId: string,
+    input: CreateTaskInput
+  ) => Promise<{ error: string | null }>;
+  editTask: (
+    id: string,
+    taskType: TaskType,
+    input: UpdateTaskInput
+  ) => Promise<{ error: string | null }>;
+  toggleTaskDone: (
+    id: string,
+    isDone: boolean
+  ) => Promise<{ error: string | null }>;
   removeTask: (id: string) => Promise<{ error: string | null }>;
 
   clearError: () => void;
@@ -64,6 +78,37 @@ export const useTasksStore = create<TasksState>((set) => ({
 
     set((state) => ({
       tasks: data ? [data, ...state.tasks] : state.tasks,
+      saving: false,
+      error: null,
+    }));
+
+    return { error: null };
+  },
+
+  editTask: async (id, taskType, input) => {
+    set({ saving: true, error: null });
+
+    const { data, error } = await updateTaskService(id, taskType, input);
+
+    if (error) {
+      set({
+        saving: false,
+        error: error.message,
+      });
+      return { error: error.message };
+    }
+
+    if (!data) {
+      const fallbackMessage = "No se pudo guardar la tarea.";
+      set({
+        saving: false,
+        error: fallbackMessage,
+      });
+      return { error: fallbackMessage };
+    }
+
+    set((state) => ({
+      tasks: state.tasks.map((task) => (task.id === id ? data : task)),
       saving: false,
       error: null,
     }));

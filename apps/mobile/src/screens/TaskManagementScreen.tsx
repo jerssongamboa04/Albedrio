@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CompositeScreenProps } from "@react-navigation/native";
@@ -60,7 +61,7 @@ export function TaskManagementScreen({ navigation }: Props) {
     useState<TrackingSummary | null>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
 
-  async function loadCompletedTodayTaskIds() {
+  const loadCompletedTodayTaskIds = useCallback(async () => {
     const { data, error } = await fetchTodayCompletedTaskIds();
 
     if (error) {
@@ -70,9 +71,9 @@ export function TaskManagementScreen({ navigation }: Props) {
 
     const ids = (data ?? []).map((row) => row.task_id);
     setCompletedTodayTaskIds(ids);
-  }
+  }, []);
 
-  async function loadTrackingSummary() {
+  const loadTrackingSummary = useCallback(async () => {
     setTrackingLoading(true);
 
     const { data, error } = await fetchTrackingSummary();
@@ -85,13 +86,15 @@ export function TaskManagementScreen({ navigation }: Props) {
 
     setTrackingSummary(data);
     setTrackingLoading(false);
-  }
+  }, []);
 
-  useEffect(() => {
-    loadTasks();
-    loadCompletedTodayTaskIds();
-    loadTrackingSummary();
-  }, [loadTasks]);
+  useFocusEffect(
+    useCallback(() => {
+      loadTasks();
+      loadCompletedTodayTaskIds();
+      loadTrackingSummary();
+    }, [loadTasks, loadCompletedTodayTaskIds, loadTrackingSummary])
+  );
 
   const completedTodaySet = useMemo(
     () => new Set(completedTodayTaskIds),
@@ -135,6 +138,10 @@ export function TaskManagementScreen({ navigation }: Props) {
       return;
     }
 
+    await loadTasks();
+    await loadCompletedTodayTaskIds();
+    await loadTrackingSummary();
+
     setForm(INITIAL_CREATE_TASK_FORM);
     setActiveTab("tasks");
   }
@@ -155,6 +162,7 @@ export function TaskManagementScreen({ navigation }: Props) {
       return;
     }
 
+    await loadTasks();
     await loadCompletedTodayTaskIds();
     await loadTrackingSummary();
   }
@@ -169,6 +177,7 @@ export function TaskManagementScreen({ navigation }: Props) {
       return;
     }
 
+    await loadTasks();
     await loadCompletedTodayTaskIds();
     await loadTrackingSummary();
   }
@@ -236,7 +245,6 @@ export function TaskManagementScreen({ navigation }: Props) {
                 summary={trackingSummary}
                 loading={trackingLoading}
                 albeImageSource={require("../../assets/characters/AlbeMetrics.png")}
-
               />
             ) : null}
           </View>

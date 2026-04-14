@@ -41,6 +41,19 @@ export type CreateTaskInput = {
   day_moment: TaskDayMoment | null;
 };
 
+export type UpdateTaskInput = {
+  title: string;
+  notes: string | null;
+  due_date: string | null;
+
+  estimated_minutes: number | null;
+  priority: TaskPriority;
+  energy_level: TaskEnergyLevel;
+  clarity_level: TaskClarityLevel;
+  difficulty_level: TaskDifficultyLevel;
+  day_moment: TaskDayMoment | null;
+};
+
 function getLocalDateString(date = new Date()) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -72,6 +85,28 @@ export async function createTask(userId: string, input: CreateTaskInput) {
   };
 
   return supabase.from("tasks").insert([payload]).select().single();
+}
+
+export async function updateTask(id: string, taskType: TaskType, input: UpdateTaskInput) {
+  const payload = {
+    title: input.title.trim(),
+    notes: input.notes ?? null,
+    due_date: taskType === "one_time" ? input.due_date ?? null : null,
+
+    estimated_minutes: input.estimated_minutes ?? null,
+    priority: input.priority,
+    energy_level: input.energy_level,
+    clarity_level: input.clarity_level,
+    difficulty_level: input.difficulty_level,
+    day_moment: taskType === "daily" ? input.day_moment ?? "any" : null,
+  };
+
+  return supabase
+    .from("tasks")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
 }
 
 export async function toggleTaskDone(id: string, isDone: boolean) {

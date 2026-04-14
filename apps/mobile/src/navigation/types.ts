@@ -3,6 +3,7 @@ export type AppTabsParamList = {
   TaskManagementScreen: undefined;
   Profile: undefined;
 };
+
 export type AppStackParamList = {
   MainTabs: undefined;
   TaskStartScreen: {
@@ -12,12 +13,15 @@ export type AppStackParamList = {
   TaskDetailScreen: {
     taskId: string;
   };
+  EditTaskScreen: {
+    taskId: string;
+  };
   AntiBlockScreen: {
     taskId: string;
   };
   BreakdownScreen: {
-  taskId: string;
-};
+    taskId: string;
+  };
 };
 
 export type AuthStackParamList = {

@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,6 +33,11 @@ export function ProfileScreen() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const [draftDisplayName, setDraftDisplayName] = useState("");
+  const [draftBio, setDraftBio] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -133,6 +140,18 @@ export function ProfileScreen() {
 
   const emailText = isLoadingUser ? "Cargando cuenta..." : email ?? "No disponible";
   const avatarUri = localAvatarUri ?? profile?.avatar_url ?? null;
+  const bioCharactersLeft = 160 - draftBio.length;
+
+  function openEditModal() {
+    setDraftDisplayName(profile?.display_name?.trim() || fallbackName);
+    setDraftBio(profile?.bio ?? "");
+    setIsEditModalVisible(true);
+  }
+
+  function closeEditModal() {
+    if (isSavingProfile) return;
+    setIsEditModalVisible(false);
+  }
 
   function confirmSignOut() {
     Alert.alert(
@@ -241,8 +260,6 @@ export function ProfileScreen() {
 
       const fileExtension = getFileExtension(image);
       const contentType = image.mimeType ?? getContentType(fileExtension);
-
-      // Ruta fija para que cada usuario tenga un único avatar en Storage.
       const filePath = `${user.id}/avatar`;
 
       const { error: updateFileError } = await supabase.storage
@@ -348,6 +365,75 @@ export function ProfileScreen() {
     }
   }
 
+  async function handleSaveProfile() {
+    const cleanedDisplayName = draftDisplayName.trim();
+    const cleanedBio = draftBio.trim();
+
+    if (!cleanedDisplayName) {
+      Alert.alert(
+        "Nombre necesario",
+        "Añade un nombre visible para guardar tu perfil."
+      );
+      return;
+    }
+
+    if (cleanedBio.length > 160) {
+      Alert.alert(
+        "Bio demasiado larga",
+        "La biografía debe tener como máximo 160 caracteres."
+      );
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (!user) {
+        throw new Error("No hay usuario autenticado");
+      }
+
+      const { data: updatedProfile, error: updateProfileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            display_name: cleanedDisplayName,
+            bio: cleanedBio.length > 0 ? cleanedBio : null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select("id, display_name, bio, avatar_url, created_at, updated_at")
+        .single();
+
+      if (updateProfileError) {
+        throw updateProfileError;
+      }
+
+      setProfile(updatedProfile as ProfileRecord);
+      setIsEditModalVisible(false);
+
+      Alert.alert("Perfil actualizado", "Tus cambios ya se han guardado.");
+    } catch (error) {
+      console.error("Error al guardar el perfil:", error);
+      Alert.alert(
+        "No se pudo guardar",
+        "Ha ocurrido un problema al intentar actualizar tu perfil."
+      );
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
   return (
     <View style={styles.root}>
       <View style={styles.bubbleOne} />
@@ -410,21 +496,6 @@ export function ProfileScreen() {
               </View>
             </View>
 
-            <View style={styles.emailCard}>
-              <View style={styles.emailIconWrap}>
-                <Ionicons
-                  name="mail-outline"
-                  size={18}
-                  color={theme.colors.primaryDark}
-                />
-              </View>
-
-              <View style={styles.emailTextBlock}>
-                <Text style={styles.emailLabel}>Correo de acceso</Text>
-                <Text style={styles.emailValue}>{emailText}</Text>
-              </View>
-            </View>
-
             <View style={styles.chipsRow}>
               <View style={[styles.chip, styles.chipPrimarySoft]}>
                 <Ionicons
@@ -446,15 +517,23 @@ export function ProfileScreen() {
                 <Text style={styles.chipText}>Espacio personal</Text>
               </View>
 
-              <View style={styles.chip}>
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={14}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.chipText}>Sesión segura</Text>
-              </View>
             </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.editProfileButton,
+                pressed && styles.editProfileButtonPressed,
+              ]}
+              onPress={openEditModal}
+            >
+              <Ionicons
+                name="create-outline"
+                size={18}
+                color={theme.colors.primaryDark}
+                style={styles.editProfileButtonIcon}
+              />
+              <Text style={styles.editProfileButtonText}>Editar perfil</Text>
+            </Pressable>
           </View>
 
           <View style={styles.sectionCard}>
@@ -469,9 +548,6 @@ export function ProfileScreen() {
 
               <View style={styles.sectionHeaderText}>
                 <Text style={styles.sectionTitle}>Tu espacio en Albendrio</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Un lugar breve, claro y con intención
-                </Text>
               </View>
             </View>
 
@@ -521,6 +597,103 @@ export function ProfileScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        visible={isEditModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeEditModal}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={closeEditModal} />
+
+          <View style={styles.modalCard}>
+            <View style={styles.modalHandle} />
+
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrap}>
+                <Ionicons
+                  name="create-outline"
+                  size={20}
+                  color={theme.colors.primaryDark}
+                />
+              </View>
+
+              <View style={styles.modalHeaderText}>
+                <Text style={styles.modalTitle}>Editar perfil</Text>
+                <Text style={styles.modalSubtitle}>
+                  Ajusta tu nombre visible y tu bio sin salir de tu espacio
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Nombre visible</Text>
+              <TextInput
+                value={draftDisplayName}
+                onChangeText={setDraftDisplayName}
+                placeholder="Escribe tu nombre visible"
+                placeholderTextColor="#A29CB7"
+                style={styles.input}
+                maxLength={40}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Bio breve</Text>
+                <Text style={styles.counterText}>{bioCharactersLeft}</Text>
+              </View>
+
+              <TextInput
+                value={draftBio}
+                onChangeText={setDraftBio}
+                placeholder="Cuéntale algo breve a Albendrio sobre ti"
+                placeholderTextColor="#A29CB7"
+                style={[styles.input, styles.textArea]}
+                multiline
+                maxLength={160}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.secondaryButton,
+                  pressed && styles.secondaryButtonPressed,
+                  isSavingProfile && styles.secondaryButtonDisabled,
+                ]}
+                onPress={closeEditModal}
+                disabled={isSavingProfile}
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  pressed && styles.saveButtonPressed,
+                  isSavingProfile && styles.saveButtonDisabled,
+                ]}
+                onPress={handleSaveProfile}
+                disabled={isSavingProfile}
+              >
+                <Ionicons
+                  name="save-outline"
+                  size={18}
+                  color="#FFFFFF"
+                  style={styles.saveButtonIcon}
+                />
+                <Text style={styles.saveButtonText}>
+                  {isSavingProfile ? "Guardando..." : "Guardar"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -748,6 +921,28 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryDark,
   },
 
+  editProfileButton: {
+    minHeight: 48,
+    borderRadius: 18,
+    backgroundColor: "rgba(123,92,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(123,92,255,0.14)",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editProfileButtonPressed: {
+    opacity: 0.92,
+  },
+  editProfileButtonIcon: {
+    marginRight: 8,
+  },
+  editProfileButtonText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Bold",
+    color: theme.colors.primaryDark,
+  },
+
   sectionCard: {
     backgroundColor: theme.colors.card,
     borderRadius: 24,
@@ -783,6 +978,89 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     color: theme.colors.muted,
   },
+
+  formGroup: {
+    gap: 8,
+  },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontFamily: "Poppins-SemiBold",
+    color: theme.colors.text,
+  },
+  counterText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+    color: theme.colors.muted,
+  },
+  input: {
+    minHeight: 54,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: theme.colors.stroke,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: theme.colors.text,
+  },
+  textArea: {
+    minHeight: 110,
+  },
+
+  saveButton: {
+    minHeight: 52,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 18,
+  },
+  saveButtonPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.995 }],
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonIcon: {
+    marginRight: 8,
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontFamily: "Poppins-Bold",
+    color: "#FFFFFF",
+  },
+
+  secondaryButton: {
+    minHeight: 52,
+    flex: 1,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: theme.colors.stroke,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 18,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.9,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.7,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Bold",
+    color: theme.colors.text,
+  },
+
   messageBox: {
     backgroundColor: "rgba(123,92,255,0.08)",
     borderRadius: 20,
@@ -846,5 +1124,63 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(27, 18, 52, 0.28)",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 28,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(123,92,255,0.14)",
+    gap: 18,
+  },
+  modalHandle: {
+    alignSelf: "center",
+    width: 48,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(123,92,255,0.18)",
+    marginBottom: 2,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  modalIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(123,92,255,0.10)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalHeaderText: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-Bold",
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontFamily: "Poppins-Regular",
+    color: theme.colors.muted,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
   },
 });

@@ -208,6 +208,13 @@ export function TaskDetailScreen({ route, navigation }: Props) {
       taskTitle: task.title,
     });
   }
+  function handleOpenEditTask() {
+    if (!task) return;
+
+    navigation.navigate("EditTaskScreen", {
+      taskId: task.id,
+    });
+  }
 
   const dueDateLabel = formatDueDate(task.due_date);
   const dayMomentLabel = getDayMomentLabel(task.day_moment);
@@ -232,9 +239,46 @@ export function TaskDetailScreen({ route, navigation }: Props) {
 
           <View style={styles.heroChips}>
             <InfoChip icon="layers-outline" label={getTaskTypeLabel(task.task_type)} />
-            <InfoChip icon="flame-outline" label={`Prioridad ${getPriorityLabel(task.priority)}`} />
-            <InfoChip icon="time-outline" label={formatEstimatedMinutes(task.estimated_minutes)} />
+            <InfoChip
+              icon="flame-outline"
+              label={`Prioridad ${getPriorityLabel(task.priority)}`}
+            />
+            <InfoChip
+              icon="time-outline"
+              label={formatEstimatedMinutes(task.estimated_minutes)}
+            />
           </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Gestión de la tarea</Text>
+
+          <Pressable
+            onPress={handleOpenEditTask}
+            style={({ pressed }) => [
+              styles.manageActionButton,
+              pressed && styles.manageActionButtonPressed,
+            ]}
+          >
+            <View style={styles.manageActionLeft}>
+              <View style={styles.manageActionIconWrap}>
+                <Ionicons name="create-outline" size={18} color="#7B5CFF" />
+              </View>
+
+              <View style={styles.manageActionTextWrap}>
+                <Text style={styles.manageActionTitle}>Editar tarea</Text>
+                <Text style={styles.manageActionSubtitle}>
+                  Ajusta el contenido y el contexto sin perder la estructura actual.
+                </Text>
+              </View>
+            </View>
+
+            <Ionicons
+              name="chevron-forward-outline"
+              size={18}
+              color="#9A92B3"
+            />
+          </Pressable>
         </View>
 
         <View style={styles.card}>
@@ -290,7 +334,11 @@ export function TaskDetailScreen({ route, navigation }: Props) {
             <View style={styles.readyCard}>
               <View style={styles.readyCardHeader}>
                 <View style={styles.readyIconWrap}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#7B5CFF" />
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color="#7B5CFF"
+                  />
                 </View>
 
                 <View style={styles.readyTextWrap}>
@@ -326,7 +374,11 @@ export function TaskDetailScreen({ route, navigation }: Props) {
                 >
                   <View style={styles.actionCardHeader}>
                     <View style={styles.actionIconWrap}>
-                      <Ionicons name="git-branch-outline" size={18} color="#7B5CFF" />
+                      <Ionicons
+                        name="git-branch-outline"
+                        size={18}
+                        color="#7B5CFF"
+                      />
                     </View>
                     <View style={styles.actionTextWrap}>
                       <Text style={styles.actionTitle}>Descomponer tarea</Text>
@@ -358,8 +410,17 @@ export function TaskDetailScreen({ route, navigation }: Props) {
                   ]}
                 >
                   <View style={styles.actionCardHeader}>
-                    <View style={[styles.actionIconWrap, styles.actionIconWrapHighlighted]}>
-                      <Ionicons name="sparkles-outline" size={18} color="#7B5CFF" />
+                    <View
+                      style={[
+                        styles.actionIconWrap,
+                        styles.actionIconWrapHighlighted,
+                      ]}
+                    >
+                      <Ionicons
+                        name="sparkles-outline"
+                        size={18}
+                        color="#7B5CFF"
+                      />
                     </View>
                     <View style={styles.actionTextWrap}>
                       <Text style={styles.actionTitle}>Modo anti-bloqueo</Text>
@@ -385,7 +446,11 @@ export function TaskDetailScreen({ route, navigation }: Props) {
                 <View style={styles.neutralHelpCard}>
                   <View style={styles.readyCardHeader}>
                     <View style={styles.readyIconWrap}>
-                      <Ionicons name="play-circle-outline" size={20} color="#7B5CFF" />
+                      <Ionicons
+                        name="play-circle-outline"
+                        size={20}
+                        color="#7B5CFF"
+                      />
                     </View>
 
                     <View style={styles.readyTextWrap}>
@@ -535,6 +600,59 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontFamily: "Poppins-SemiBold",
     marginBottom: 14,
+  },
+
+  manageActionButton: {
+    minHeight: 74,
+    borderRadius: 20,
+    backgroundColor: "#FAF8FF",
+    borderWidth: 1,
+    borderColor: "#E7E0FF",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  manageActionButtonPressed: {
+    opacity: 0.95,
+    transform: [{ scale: 0.995 }],
+  },
+
+  manageActionLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+
+  manageActionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  manageActionTextWrap: {
+    flex: 1,
+  },
+
+  manageActionTitle: {
+    fontSize: 15,
+    color: theme.colors.text,
+    fontFamily: "Poppins-SemiBold",
+    marginBottom: 4,
+  },
+
+  manageActionSubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#736D8D",
+    fontFamily: "Poppins-Regular",
   },
 
   detailRow: {
