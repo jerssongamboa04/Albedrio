@@ -1,7 +1,7 @@
-# Albendrio
-# Albendrio
+# Albedrio
+# Albedrio
 
-Albendrio es una aplicación móvil multiplataforma orientada a la productividad personal. Su objetivo no es solo permitir al usuario registrar tareas, sino ayudarle a pasar del bloqueo a la acción mediante una experiencia clara, visual y centrada en la ejecución.
+Albedrio es una aplicación móvil multiplataforma orientada a la productividad personal. Su objetivo no es solo permitir al usuario registrar tareas, sino ayudarle a pasar del bloqueo a la acción mediante una experiencia clara, visual y centrada en la ejecución.
 
 El proyecto se desarrolla como Trabajo Fin de Grado (TFG) del ciclo de Desarrollo de Aplicaciones Multiplataforma (DAM).
 
@@ -9,7 +9,7 @@ El proyecto se desarrolla como Trabajo Fin de Grado (TFG) del ciclo de Desarroll
 
 ## Objetivo del proyecto
 
-Albendrio nace con la intención de ofrecer una herramienta de productividad personal más útil en el momento en que el usuario realmente lo necesita: cuando no sabe por dónde empezar, cuando una tarea resulta demasiado grande o cuando necesita una siguiente acción clara.
+Albedrio nace con la intención de ofrecer una herramienta de productividad personal más útil en el momento en que el usuario realmente lo necesita: cuando no sabe por dónde empezar, cuando una tarea resulta demasiado grande o cuando necesita una siguiente acción clara.
 
 La aplicación combina una base funcional de gestión de tareas con tres elementos diferenciales:
 
