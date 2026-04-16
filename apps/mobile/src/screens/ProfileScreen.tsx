@@ -96,13 +96,13 @@ export function ProfileScreen() {
 
   const fallbackName = useMemo(() => {
     if (!email) {
-      return "Tu espacio Albendrio";
+      return "Tu espacio Albedrio";
     }
 
     const localPart = email.split("@")[0]?.trim();
 
     if (!localPart) {
-      return "Tu espacio Albendrio";
+      return "Tu espacio Albedrio";
     }
 
     const normalized = localPart.replace(/[._-]+/g, " ").trim();
@@ -127,11 +127,11 @@ export function ProfileScreen() {
       return bio;
     }
 
-    return "Tu espacio personal dentro de Albendrio. Aquí vive tu cuenta.";
+    return "Tu espacio personal dentro de Albedrio. Aquí vive tu cuenta.";
   }, [profile]);
 
   const userInitial = useMemo(() => {
-    if (!displayName || displayName === "Tu espacio Albendrio") {
+    if (!displayName || displayName === "Tu espacio Albedrio") {
       return "A";
     }
 
@@ -332,7 +332,7 @@ export function ProfileScreen() {
       if (!permissionResult.granted) {
         Alert.alert(
           "Permiso necesario",
-          "Albendrio necesita acceso a tus fotos para que puedas elegir una imagen de perfil."
+          "Albedrio necesita acceso a tus fotos para que puedas elegir una imagen de perfil."
         );
         return;
       }
@@ -547,13 +547,13 @@ export function ProfileScreen() {
               </View>
 
               <View style={styles.sectionHeaderText}>
-                <Text style={styles.sectionTitle}>Tu espacio en Albendrio</Text>
+                <Text style={styles.sectionTitle}>Tu espacio en Albedrio</Text>
               </View>
             </View>
 
             <View style={styles.messageBox}>
               <Text style={styles.messageText}>
-                Albendrio no busca que lo hagas todo de golpe. Busca ayudarte a
+                Albedrio no busca que lo hagas todo de golpe. Busca ayudarte a
                 empezar mejor, bajar la fricción y darte una sensación más real
                 de claridad y avance.
               </Text>
@@ -591,7 +591,7 @@ export function ProfileScreen() {
                 style={styles.logoutButtonIcon}
               />
               <Text style={styles.logoutButtonText}>
-                {isSigningOut ? "Cerrando sesión..." : "Salir de Albendrio"}
+                {isSigningOut ? "Cerrando sesión..." : "Salir de Albedrio"}
               </Text>
             </Pressable>
           </View>
@@ -649,7 +649,7 @@ export function ProfileScreen() {
               <TextInput
                 value={draftBio}
                 onChangeText={setDraftBio}
-                placeholder="Cuéntale algo breve a Albendrio sobre ti"
+                placeholder="Cuéntale algo breve a Albedrio sobre ti"
                 placeholderTextColor="#A29CB7"
                 style={[styles.input, styles.textArea]}
                 multiline

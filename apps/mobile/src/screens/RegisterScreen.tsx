@@ -78,7 +78,7 @@ export function RegisterScreen({ navigation }: Props) {
       <BrandHeader />
 
       <Text style={styles.title}>Crea tu cuenta</Text>
-      <Text style={styles.subtitle}>Empieza con Albendrio y vamos paso a paso.</Text>
+      <Text style={styles.subtitle}>Empieza con Albedrio y vamos paso a paso.</Text>
 
       <View style={{ height: theme.spacing(2) }} />
 

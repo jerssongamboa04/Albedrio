@@ -42,7 +42,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
 
   setLoading(false);
 
-  // Redirigir al login tras una pausa corta (UX tipo app grande)
+  // Redirigir al login tras una pausa corta 
   setTimeout(() => {
     navigation.replace("Login");
   }, 900);

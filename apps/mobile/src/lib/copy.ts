@@ -1,6 +1,6 @@
 export const copy = {
   brand: {
-    name: "Albendrio",
+    name: "Albedrio",
     tagline: "Hazlo pequeño. Hazlo hoy.",
   },
 
@@ -14,8 +14,8 @@ export const copy = {
     emailPlaceholder: "Email",
     passwordPlaceholder: "Contraseña",
     signIn: "Entrar Modo misión.",
-    signUp: "Crear cuenta y empezar fuerte",
-    hint: "Tip Albendrio: empieza ridículamente fácil y gana inercia.",
+    signUp: "Crear cuenta y empezar",
+    hint: "Tip Albedrio: empieza ridículamente fácil y gana inercia.",
     createdOk: "✅ Cuenta creada. Si te pide confirmación, revisa el email y volvemos al ataque.",
   },
 
@@ -34,10 +34,10 @@ export const copy = {
   },
 
   feedback: {
-    genericError: "Uy. Se nos ha atragantado. Dale otra vez y lo sacamos.",
+    genericError: "Uy, pulsa otra vez y lo tenemos.",
   },
 
-  // Extra: frases del “compañero Albendrio” (para gamificación/UX)
+  // Extra: frases del “compañero Albedrio” (para gamificación/UX)
   albendrio: {
     onAdd: [
       "Buena. Pequeño paso, gran señal.",

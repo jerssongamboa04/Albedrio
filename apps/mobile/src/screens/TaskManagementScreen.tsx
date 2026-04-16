@@ -202,7 +202,7 @@ export function TaskManagementScreen({ navigation }: Props) {
           <View style={styles.heroCard}>
             <Text style={styles.screenTitle}>Tus tareas</Text>
             <Text style={styles.screenSubtitle}>
-              Aquí puedes revisar tus tareas y consultar cómo va tu avance.
+              Aquí puedes Revisar , Crear , Editar tus tareas y consultar cómo va tu avance.
             </Text>
 
             <View style={styles.summaryPill}>

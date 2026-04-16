@@ -334,7 +334,7 @@ export function CreateTaskPanel({
         />
 
         <Text style={styles.helperText}>
-          Cuanto más clara sea la acción, mejor podrá ayudarte Albendrio a proponerte por dónde empezar.
+          Cuanto más clara sea la acción, mejor podrá ayudarte Albedrio a proponerte por dónde empezar.
         </Text>
       </View>
 
