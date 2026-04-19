@@ -10,12 +10,13 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuthStore } from "../store/auth.store";
 import { useTasksStore } from "../store/tasks.store";
+import { useContextStore } from "../store/context.store";
 
 import { HomeHeader } from "../components/home/HomeHeader";
 import { DailyProgressCard } from "../components/home/DailyProgressCard";
 import { MascotCharacter } from "../components/MascotCharacter";
 import { getMascotState } from "../features/home/utils/getMascotState";
-import { NextStepCard } from "../components/home/NextStepCard";
+import { NextStepCard, type NextStepCardMode } from "../components/home/NextStepCard";
 import { TasksListPanel } from "../components/tasks/TaskListPanel";
 import { buildHomeTodaySnapshot } from "../features/home/utils/buildHomeTodaySnapshot";
 
@@ -28,6 +29,10 @@ import {
   type TrackingSummary,
 } from "../services/progress.service";
 import { fetchTodayCompletedTaskIds } from "../services/taskCompletions.service";
+import {
+  getRecommendedTask,
+  getRecommendationReasonText,
+} from "../services/nextAction.service";
 import { supabase } from "../lib/supabase";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -70,21 +75,25 @@ export function HomeScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
 
   const tasks = useTasksStore((s) => s.tasks);
+  const tasksLoading = useTasksStore((s) => s.loading);
   const error = useTasksStore((s) => s.error);
   const loadTasks = useTasksStore((s) => s.loadTasks);
   const toggleTaskDone = useTasksStore((s) => s.toggleTaskDone);
   const removeTask = useTasksStore((s) => s.removeTask);
 
+  const availableTime = useContextStore((s) => s.availableTime);
+  const energyLevel = useContextStore((s) => s.energyLevel);
+  const expiresAt = useContextStore((s) => s.expiresAt);
+  const setContext = useContextStore((s) => s.setContext);
+  const hasValidContext = useContextStore((s) => s.hasValidContext);
+  const clearExpiredContext = useContextStore((s) => s.clearExpiredContext);
+
   const [msg, setMsg] = useState<string | null>(null);
-  const [suggestedIndex, setSuggestedIndex] = useState(0);
-  const [completedTodayTaskIds, setCompletedTodayTaskIds] = useState<string[]>(
-    []
-  );
+  const [completedTodayTaskIds, setCompletedTodayTaskIds] = useState<string[]>([]);
   const [trackingSummary, setTrackingSummary] =
     useState<TrackingSummary | null>(null);
-  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(
-    null
-  );
+  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
+  const [contextClock, setContextClock] = useState(() => Date.now());
 
   const loadHomeSnapshotSources = useCallback(async () => {
     const [
@@ -137,11 +146,28 @@ export function HomeScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
+      clearExpiredContext();
       loadTasks();
       loadHomeSnapshotSources();
       loadProfileDisplayName();
-    }, [loadTasks, loadHomeSnapshotSources, loadProfileDisplayName])
+    }, [
+      clearExpiredContext,
+      loadTasks,
+      loadHomeSnapshotSources,
+      loadProfileDisplayName,
+    ])
   );
+
+  useEffect(() => {
+    if (!expiresAt) return;
+
+    const intervalId = setInterval(() => {
+      clearExpiredContext();
+      setContextClock(Date.now());
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [expiresAt, clearExpiredContext]);
 
   const homeSnapshot = useMemo(() => {
     return buildHomeTodaySnapshot({
@@ -171,28 +197,57 @@ export function HomeScreen({ navigation }: Props) {
     [doneTodayCount, totalTodayCount]
   );
 
-  useEffect(() => {
-    setSuggestedIndex(0);
-  }, [pendingTodayTasks.length]);
+  const contextIsValid = useMemo(() => {
+    void contextClock;
+    return hasValidContext();
+  }, [hasValidContext, availableTime, energyLevel, expiresAt, contextClock]);
 
-  const suggestedTask = useMemo(() => {
-    if (pendingTodayTasks.length === 0) return null;
-    return pendingTodayTasks[suggestedIndex % pendingTodayTasks.length] ?? null;
-  }, [pendingTodayTasks, suggestedIndex]);
+  const recommendation = useMemo(() => {
+    if (!contextIsValid) return null;
 
-  const suggestedTaskTitle = suggestedTask?.title ?? null;
+    return getRecommendedTask(
+      pendingTodayTasks,
+      {
+        availableTime,
+        energyLevel,
+      },
+      new Date()
+    );
+  }, [pendingTodayTasks, contextIsValid, availableTime, energyLevel]);
 
-  function handleSeeAnotherSuggestion() {
-    if (pendingTodayTasks.length <= 1) return;
-    setSuggestedIndex((prev) => (prev + 1) % pendingTodayTasks.length);
-  }
+  const recommendationTask = recommendation?.task ?? null;
+  const recommendationReason = recommendation
+    ? getRecommendationReasonText(recommendation.reasons)
+    : null;
+
+  const nextStepCardMode = useMemo<NextStepCardMode>(() => {
+    if (pendingTodayTasks.length === 0) {
+      return "empty";
+    }
+
+    if (!contextIsValid) {
+      return "capture";
+    }
+
+    return recommendationTask ? "recommendation" : "empty";
+  }, [pendingTodayTasks.length, contextIsValid, recommendationTask]);
+
+  const nextStepCardLoading = tasksLoading && contextIsValid;
+
+  const handleContextComplete = useCallback(
+    (payload: { availableTime: 5 | 15 | 30 | 60; energyLevel: "low" | "medium" | "high" }) => {
+      setContext(payload);
+      setContextClock(Date.now());
+    },
+    [setContext]
+  );
 
   function handleStartSuggestedTask() {
-    if (!suggestedTask) return;
+    if (!recommendationTask) return;
 
     navigation.navigate("TaskStartScreen", {
-      taskId: suggestedTask.id,
-      taskTitle: suggestedTask.title,
+      taskId: recommendationTask.id,
+      taskTitle: recommendationTask.title,
     });
   }
 
@@ -293,9 +348,12 @@ export function HomeScreen({ navigation }: Props) {
               </View>
 
               <NextStepCard
-                suggestedTask={suggestedTaskTitle}
+                mode={nextStepCardMode}
+                recommendationTitle={recommendationTask?.title ?? null}
+                recommendationReason={recommendationReason}
+                onContextComplete={handleContextComplete}
                 onStart={handleStartSuggestedTask}
-                onSeeAnother={handleSeeAnotherSuggestion}
+                isLoading={nextStepCardLoading}
               />
 
               {msg ? <Text style={styles.message}>{msg}</Text> : null}
