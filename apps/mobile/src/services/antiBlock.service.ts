@@ -57,15 +57,59 @@ const COMMON_TASK_VERBS = [
   "hacer",
   "terminar",
   "empezar",
+  "banar",
+  "pasear",
+  "cepillar",
+  "alimentar",
+  "sacar",
+  "llevar",
+] as const;
+
+const PET_CARE_VERBS = [
+  "banar",
+  "pasear",
+  "cepillar",
+  "alimentar",
+  "sacar",
+  "llevar",
+] as const;
+
+const PET_CARE_KEYWORDS = [
+  "perro",
+  "perra",
+  "gato",
+  "gata",
+  "mascota",
+  "veterinario",
+  "correa",
+  "champu",
+  "pienso",
+] as const;
+
+const NON_NAME_WORDS = [
+  "mi",
+  "mis",
+  "tu",
+  "tus",
+  "su",
+  "sus",
+  "el",
+  "la",
+  "los",
+  "las",
+  "un",
+  "una",
 ] as const;
 
 type SupportedVerb = (typeof COMMON_TASK_VERBS)[number] | "generic";
+type AntiBlockDomain = "pet_care" | "generic";
 
 export function buildAntiBlockSuggestion(task: Task): AntiBlockResult {
   const reasons = detectAntiBlockReasons(task);
   const level = getAntiBlockLevel(task, reasons);
   const detectedVerb = detectTaskVerb(task);
   const normalizedVerb = normalizeVerb(detectedVerb);
+  const domain = detectAntiBlockDomain(task, normalizedVerb);
 
   return {
     level,
@@ -73,8 +117,8 @@ export function buildAntiBlockSuggestion(task: Task): AntiBlockResult {
     detectedVerb,
     headline: getHeadline(level),
     message: getMessage(level, reasons),
-    micro_step: buildMicroStep(task, normalizedVerb, level),
-    optional_step: buildOptionalStep(task, normalizedVerb, level),
+    micro_step: buildMicroStep(task, normalizedVerb, level, domain),
+    optional_step: buildOptionalStep(task, normalizedVerb, level, domain),
     cta_label: "Empezar con esto",
   };
 }
@@ -188,8 +232,69 @@ function tokenize(value: string): string[] {
     .filter(Boolean);
 }
 
+function normalizeSingleWord(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.,;:¡!¿?()[\]{}"']/g, "")
+    .trim();
+}
+
 function isKnownVerb(word: string): boolean {
   return COMMON_TASK_VERBS.includes(word as (typeof COMMON_TASK_VERBS)[number]);
+}
+
+function hasPetCareContext(task: Task): boolean {
+  const words = [...tokenize(task.title), ...tokenize(task.notes ?? "")];
+
+  return words.some((word) =>
+    PET_CARE_KEYWORDS.includes(word as (typeof PET_CARE_KEYWORDS)[number])
+  );
+}
+
+function detectNamedTarget(task: Task): string | null {
+  const originalWords = task.title
+    .replace(/[.,;:¡!¿?()[\]{}"']/g, " ")
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  for (let i = 0; i < originalWords.length - 1; i += 1) {
+    const currentWord = normalizeSingleWord(originalWords[i] ?? "");
+    const nextWord = originalWords[i + 1] ?? "";
+    const normalizedNextWord = normalizeSingleWord(nextWord);
+
+    if (currentWord !== "a") continue;
+    if (!nextWord) continue;
+
+    if (
+      NON_NAME_WORDS.includes(
+        normalizedNextWord as (typeof NON_NAME_WORDS)[number]
+      )
+    ) {
+      return null;
+    }
+
+    return nextWord.charAt(0).toUpperCase() + nextWord.slice(1);
+  }
+
+  return null;
+}
+
+function detectAntiBlockDomain(
+  task: Task,
+  verb: SupportedVerb
+): AntiBlockDomain {
+  if (PET_CARE_VERBS.includes(verb as (typeof PET_CARE_VERBS)[number])) {
+    return "pet_care";
+  }
+
+  if (hasPetCareContext(task)) {
+    return "pet_care";
+  }
+
+  return "generic";
 }
 
 function normalizeVerb(verb: string | null): SupportedVerb {
@@ -233,17 +338,98 @@ function normalizeVerb(verb: string | null): SupportedVerb {
     case "hacer":
     case "terminar":
     case "empezar":
+    case "banar":
+    case "pasear":
+    case "cepillar":
+    case "alimentar":
+    case "sacar":
+    case "llevar":
       return verb;
     default:
       return "generic";
   }
 }
 
-function buildMicroStep(
+function buildPetCareMicroStep(
   task: Task,
   verb: SupportedVerb,
   level: AntiBlockLevel
 ): string {
+  const targetName = detectNamedTarget(task);
+  const petReference = targetName ?? "tu mascota";
+
+  switch (verb) {
+    case "banar":
+      return level === "urgent"
+        ? `Coge la toalla y el champú de ${petReference} y déjalos preparados en el baño.`
+        : `Prepara la toalla y el champú de ${petReference} antes de empezar a bañarlo.`;
+
+    case "pasear":
+    case "sacar":
+      return `Coge la correa de ${petReference} y déjala lista para salir sin pensarlo más.`;
+
+    case "cepillar":
+      return `Coge el cepillo y deja a ${petReference} en un sitio tranquilo para empezar solo por un momento breve.`;
+
+    case "alimentar":
+      return `Prepara el cuenco y la comida de ${petReference} para dejar la primera parte resuelta.`;
+
+    case "llevar":
+      return level === "urgent"
+        ? `Deja preparada la correa, transportín o lo necesario para sacar a ${petReference}.`
+        : `Prepara solo lo necesario para llevar a ${petReference} y deja la salida lista.`;
+
+    case "generic":
+    default:
+      return `Prepara solo lo necesario para atender a ${petReference} y deja lista la primera acción.`;
+  }
+}
+
+function buildPetCareOptionalStep(
+  task: Task,
+  verb: SupportedVerb,
+  level: AntiBlockLevel
+): string | null {
+  if (level === "soft") {
+    return null;
+  }
+
+  const targetName = detectNamedTarget(task);
+  const petReference = targetName ?? "tu mascota";
+
+  switch (verb) {
+    case "banar":
+      return `Cuando tengas eso listo, lleva a ${petReference} a la zona de baño sin pensar todavía en hacerlo entero.`;
+
+    case "pasear":
+    case "sacar":
+      return `Después, sal solo unos minutos con ${petReference} y decide luego si necesitas más.`;
+
+    case "cepillar":
+      return `Cuando empieces, cepilla solo una zona pequeña para romper el bloqueo inicial.`;
+
+    case "alimentar":
+      return `Después, comprueba solo lo esencial y da la tarea por cerrada.`;
+
+    case "llevar":
+      return `Cuando esté todo preparado, haz solo el primer movimiento necesario para salir con ${petReference}.`;
+
+    case "generic":
+    default:
+      return `Si este primer gesto te desbloquea, continúa solo con una acción igual de pequeña con ${petReference}.`;
+  }
+}
+
+function buildMicroStep(
+  task: Task,
+  verb: SupportedVerb,
+  level: AntiBlockLevel,
+  domain: AntiBlockDomain
+): string {
+  if (domain === "pet_care") {
+    return buildPetCareMicroStep(task, verb, level);
+  }
+
   switch (verb) {
     case "aspirar":
       return "Saca la aspiradora y colócala ya en la puerta o en la zona donde tengas que empezar.";
@@ -353,8 +539,13 @@ function buildMicroStep(
 function buildOptionalStep(
   task: Task,
   verb: SupportedVerb,
-  level: AntiBlockLevel
+  level: AntiBlockLevel,
+  domain: AntiBlockDomain
 ): string | null {
+  if (domain === "pet_care") {
+    return buildPetCareOptionalStep(task, verb, level);
+  }
+
   if (level === "soft") {
     return null;
   }
