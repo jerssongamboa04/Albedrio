@@ -16,7 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import { theme } from "../lib/theme";
 import { supabase } from "../lib/supabase";
-
+import { signOutGoogleNative } from "../services/googleAuth.service";
 type ProfileRecord = {
   id: string;
   display_name: string | null;
@@ -175,6 +175,8 @@ export function ProfileScreen() {
   async function handleSignOut() {
     try {
       setIsSigningOut(true);
+
+      await signOutGoogleNative();
 
       const { error } = await supabase.auth.signOut();
 

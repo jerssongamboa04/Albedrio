@@ -5,7 +5,7 @@ import { BrandHeader } from "../components/BrandHeader";
 import { theme } from "../lib/theme";
 import { signIn } from "../services/auth.service";
 import { copy } from "../lib/copy";
-import { signInWithGoogle } from "../services/oauth.service";
+import { signInWithGoogleNative } from "../services/googleAuth.service";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 
@@ -83,7 +83,7 @@ export function AuthScreen({ navigation }: Props) {
                     setMsg(null);
 
                     try {
-                        await signInWithGoogle();
+                        await signInWithGoogleNative();
                     } catch (e: any) {
                         setMsg(`❌ ${e?.message ?? "No se pudo iniciar con Google"}`);
                     }

@@ -3,6 +3,7 @@ import { useEffect, useCallback, useRef, useState } from "react";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
+import { configureGoogleSignin } from "../services/googleAuth.service";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from "expo-linking";
 import * as QueryParams from "expo-auth-session/build/QueryParams";
@@ -12,7 +13,7 @@ import { preloadAppResources } from "../lib/preload";
 import { useAuthStore } from "../store/auth.store";
 import { supabase } from "../lib/supabase";
 
-SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 export function Root() {
   const { setSession, setInitialized, setRecovery } = useAuthStore();
@@ -62,9 +63,11 @@ export function Root() {
 
   useEffect(() => {
     let mounted = true;
-
+    
     async function boot() {
       try {
+        configureGoogleSignin();
+
         await preloadAppResources();
 
         // Procesar URL inicial (app cerrada)
@@ -84,11 +87,9 @@ export function Root() {
         setSession(data.session ?? null);
         setInitialized(true);
 
-        // Listener auth único (NO dependemos de PASSWORD_RECOVERY)
+        // Listener auth único
         authSubRef.current = supabase.auth.onAuthStateChange((_event, newSession) => {
           setSession(newSession);
-          // Importante: NO hacemos setRecovery(false) en SIGNED_IN
-          // porque en recovery a menudo se emite SIGNED_IN.
         });
       } finally {
         if (mounted) setReady(true);
