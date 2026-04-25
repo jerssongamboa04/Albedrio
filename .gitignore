@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+apps/mobile/node_modules/
+
+# Variables de entorno
+.env
+.env.*
+apps/mobile/.env
+apps/mobile/.env.*
+
+# Backup sensible de base de datos
+supabase/backup/data.sql
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Temporales de Supabase CLI
+supabase/.temp/
+
+# Archivos SQL sensibles
+supabase/backup/data.sql
+
+supabase/.temp/
+supabase/backup/data.sql
+node_modules/
