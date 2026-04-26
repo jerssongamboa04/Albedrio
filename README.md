@@ -83,34 +83,48 @@ Albedrio/
 git clone https://github.com/jerssongamboa04/Albedrio.git 
 
 - Entrar en la carpeta del proyecto:
+```text 
 cd Albedrio
-cd apps/mobile
+``` 
+```text
+ cd apps/mobile
+``` 
+
 
 - Instalar dependencias:
-npm install
+```text
+ npm install
+``` 
 
 - Crear el archivo .env dentro de apps/mobile con, al menos, estas variables:
+```text
 EXPO_PUBLIC_SUPABASE_URL=tu_url_de_supabase
 EXPO_PUBLIC_SUPABASE_ANON_KEY=tu_clave_publica_de_supabase
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=tu_google_web_client_id
+``` 
 
 - Iniciar el entorno de desarrollo:
-npx expo start
-
+```text
+ npx expo start 
+```
 ## Despliegue en Android:
 El proyecto utiliza Expo Application Services (EAS) Internal Distribution para generar builds instalables en Android fuera del entorno de desarrollo.
 
 ### Pasos básicos: 
 - Acceder a la carpeta de la app:
+```text
 cd Albedrio
 cd apps/mobile
-
+```
 - Iniciar sesión en Expo: 
-eas login
+```text
+eas login 
+```
 
 - Lanzar la build Android: 
+```text
 eas build --platform android --profile preview
-
+```
 - Instalar la APK desde el enlace generado por Expo.
 
 ## Despliegue futuro en iOS:
