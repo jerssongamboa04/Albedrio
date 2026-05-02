@@ -131,7 +131,54 @@ eas build --platform android --profile preview
 Aunque Albedrío se ha desarrollado como aplicación multiplataforma, la validación funcional del despliegue se ha priorizado sobre Android. En iOS, la distribución de aplicaciones requiere una cuenta del Apple Developer Program y una configuración adicional de firma y aprovisionamiento. Por ello, el despliegue en iOS se plantea como una línea de evolución futura del proyecto.
 
 ## Backup de base de datos:
-El repositorio incluye una copia lógica parcial de la base de datos en la carpeta supabase/backup.
+En caso de querer reconstruir la base de datos del proyecto en un entorno local, el backup incluido en el repositorio permite restaurar la estructura principal del sistema, la configuración de roles y un conjunto mínimo de datos de ejemplo. Para ello, Supabase proporciona un flujo de trabajo basado en CLI que facilita la inicialización del entorno local y la ejecución de archivos SQL sobre la base de datos asociada al proyecto.
+
+### Pasos para utilizar el backup en local:
+
+1. Clonar el repositorio del proyecto y acceder a su raíz
+Consultar apartado de despliegue en entorno local para seguir los pasos.
+
+2. Tener instalada la Supabase CLI
+Si no está disponible de forma global, puede consultarse desde el propio proyecto con:
+```text 
+npx supabase --version 
+```
+3. Iniciar el entorno local de Supabase
+```text 
+npx supabase start
+```
+Este comando levanta los servicios locales necesarios para trabajar con Supabase en desarrollo.
+4. Aplicar primero la estructura de la base de datos
+```text 
+npx supabase db reset
+```
+Si se quiere aplicar manualmente el contenido del backup, puede utilizarse el esquema incluido en:
+supabase/backup/schema.sql
+
+5. Restaurar la configuración de roles si fuese necesario
+El archivo roles.sql conserva la parte relativa a roles y permisos básicos del sistema:
+supabase/backup/roles.sql
+
+6. Cargar los datos seguros de ejemplo
+Para disponer de una base mínima de prueba sin comprometer información sensible, puede utilizarse:
+supabase/backup/data.safe.sql
+
+Este archivo contiene únicamente datos ficticios y preparados para documentación y pruebas.
+
+7. Verificar que la estructura y los datos están disponibles
+Tras la restauración, conviene comprobar que las tablas principales del proyecto, como profiles, tasks y task_completions, están disponibles y listas para trabajar en local.
+
+8. Ejecutar la aplicación normalmente en entorno local
+Una vez restaurada la base de datos, el proyecto puede arrancarse siguiendo el proceso habitual de desarrollo:
+```text 
+cd apps/mobile
+```
+```text 
+npm install
+```
+```text 
+ start
+ ```
 ### Archivos incluidos: 
 - schema.sql: estructura de la base de datos.
 - roles.sql: configuración de roles y permisos.
