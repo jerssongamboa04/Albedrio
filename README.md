@@ -192,8 +192,7 @@ Actualmente, Albedrío dispone de una base funcional consolidada, con autenticac
 <p align="center">
   <img src="docs/images/Login albedrio.png" width="230" alt="Albedrío login screen" />
   <img src="docs/images/Manejo de tareas en marco+.png" width="230" alt="Albedrío home screen" />
-  <img src="docs/images/home_en_marco" width="230" alt="Albedrío task start screen" />
+  <img src="docs/images/home_en_marco.png" width="230" alt="Albedrío task start screen" />
   <img src="docs/images/register albedrio.png" width="230" alt="Albedrío task start screen" />
   <img src="docs/images/seguimiento en marco.png" width="230" alt="Albedrío task start screen" />
-
 </p>
