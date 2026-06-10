@@ -186,3 +186,14 @@ npm install
 
 ## Estado actual del proyecto:
 Actualmente, Albedrío dispone de una base funcional consolidada, con autenticación, persistencia de datos, gestión de tareas, progreso diario y validación en dispositivo Android real. Sobre esta base, el proyecto incorpora además las funciones diferenciales orientadas a reducir el bloqueo y facilitar la ejecución.
+
+## 📱 Mockups
+
+<p align="center">
+  <img src="docs/images/Login albedrio.png" width="230" alt="Albedrío login screen" />
+  <img src="docs/images/Manejo de tareas en marco+.png" width="230" alt="Albedrío home screen" />
+  <img src="docs/images/home_en_marco" width="230" alt="Albedrío task start screen" />
+  <img src="docs/images/register albedrio.png" width="230" alt="Albedrío task start screen" />
+  <img src="docs/images/seguimiento en marco.png" width="230" alt="Albedrío task start screen" />
+
+</p>
